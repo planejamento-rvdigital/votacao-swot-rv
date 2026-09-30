@@ -232,6 +232,15 @@ details.orig .reason{margin-top:6px; font-size:12.5px; color:var(--ink-soft); fo
 .top5-wrap .top5-head{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px;}
 .top5-wrap .top5-head h3{margin:0;}
 .restore-order-btn{ border:1px solid var(--line); background:var(--surface-2); color:var(--ink-soft); border-radius:999px; padding:6px 13px; font-size:12px; font-weight:600; cursor:pointer; }
+.export-bar{ display:flex; align-items:center; gap:9px; flex-wrap:wrap; background:var(--surface-2); border:1px solid var(--line); border-radius:12px; padding:11px 14px; margin-bottom:16px; }
+.export-bar .export-label{ font-size:12.5px; font-weight:700; color:var(--ink-soft); margin-right:2px; }
+.export-bar select.export-format{ border:1px solid var(--line); background:var(--surface); color:var(--ink); border-radius:8px; padding:7px 10px; font-size:12.5px; font-family:inherit; }
+.export-bar button.export-btn{ border:1px solid var(--line); background:var(--surface); color:var(--ink); border-radius:999px; padding:8px 16px; font-size:12.5px; font-weight:700; cursor:pointer; }
+.export-bar button.export-btn:hover{ border-color:var(--navy-lt); color:var(--navy-lt); }
+.export-bar button.export-btn.export-total{ background:var(--navy); color:#fff; border-color:var(--navy); }
+.export-bar button.export-btn.export-total:hover{ opacity:.88; color:#fff; }
+.export-bar .export-status{ font-size:12px; color:var(--ink-soft); margin-left:2px; }
+.export-bar .export-status.err{ color:var(--red); font-weight:600; }
 .rank-arrows{display:flex; flex-direction:column; gap:2px;}
 .rank-arrows button{ border:1px solid var(--line); background:var(--surface-2); color:var(--ink-soft); border-radius:5px; width:20px; height:16px; font-size:10px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0; }
 .rank-arrows button:disabled{opacity:.3; cursor:default;}
@@ -737,6 +746,8 @@ ADMIN_TEMPLATE = HEAD.replace("__PAGE_TITLE__", "Painel Administrativo &mdash; V
   </div>
 </footer>
 
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
 function fatalConfigError(e){
   var msg = "Erro de configura&ccedil;&atilde;o do site: " + (e && e.message ? e.message : String(e));
@@ -866,6 +877,27 @@ document.getElementById("admin-mount").addEventListener("click", async function(
   var restoreOrderBtn = e.target.closest(".restore-order-btn");
   var rankUpBtn = e.target.closest(".rank-up");
   var rankDownBtn = e.target.closest(".rank-down");
+  var exportBtn = e.target.closest(".export-btn");
+
+  if(exportBtn){
+    var quadExp = exportBtn.getAttribute("data-quad");
+    var fmtSel = document.getElementById("export-format-select");
+    var fmt = fmtSel ? fmtSel.value : "pdf";
+    var statusEl = document.getElementById("export-status");
+    if(statusEl){ statusEl.textContent = "Gerando arquivo\u2026"; statusEl.className = "export-status"; }
+    try{
+      if(quadExp === "total"){
+        if(fmt === "pdf") exportTotalPDF(); else exportTotalXLSB();
+      } else {
+        if(fmt === "pdf") exportQuadPDF(quadExp); else exportQuadXLSB(quadExp);
+      }
+      if(statusEl){ statusEl.textContent = "Arquivo gerado."; setTimeout(function(){ if(statusEl) statusEl.textContent = ""; }, 3000); }
+    }catch(exErr){
+      console.warn("export failed", exErr);
+      if(statusEl){ statusEl.textContent = "Erro ao exportar (" + (exErr && exErr.message ? exErr.message : "desconhecido") + ")."; statusEl.className = "export-status err"; }
+    }
+    return;
+  }
 
   if(addBtn){
     var box = addBtn.closest(".add-item-box");
@@ -1226,6 +1258,19 @@ function renderSummaryView(){
     + '<h3>&#127942; Resumo Top '+topN+' &mdash; todos os quadrantes</h3>'
     + '<div class="topn-ctrl">Mostrar top <input type="number" min="1" max="50" class="topn-input" value="'+topN+'"> itens</div>'
     + '</div></div>';
+  html += '<div class="export-bar">'
+    + '<span class="export-label">Exportar Top '+topN+':</span>'
+    + '<select class="export-format" id="export-format-select">'
+    +   '<option value="pdf">PDF</option>'
+    +   '<option value="xlsb">Excel (.xlsb)</option>'
+    + '</select>'
+    + '<button class="export-btn" data-quad="forcas">For&ccedil;as</button>'
+    + '<button class="export-btn" data-quad="fraquezas">Fraquezas</button>'
+    + '<button class="export-btn" data-quad="oportunidades">Oportunidades</button>'
+    + '<button class="export-btn" data-quad="ameacas">Amea&ccedil;as</button>'
+    + '<button class="export-btn export-total" data-quad="total">Total (todos os quadrantes)</button>'
+    + '<span class="export-status" id="export-status"></span>'
+    + '</div>';
   order.forEach(function(q){
     html += '<div class="summary-quad"><h3><span class="dot" style="background:'+QUAD_COLORS[q]+'"></span>'+QUAD_LABELS[q]+'</h3>'
       + renderTopNTable(q, false, "") + '</div>';
@@ -1284,6 +1329,218 @@ function renderEditView(){
 
   mount.innerHTML = html;
 }
+
+function tagLabelFromOrigins(origins){
+  var has = {};
+  (origins || []).forEach(function(o){ has[o] = true; });
+  if(has["Não Telecom"]) return "Não Telecom";
+  if(has["Telecom"] && has["Ambos"]) return "Telecom + Ambos";
+  if(has["Telecom"]) return "Telecom";
+  return "Ambos";
+}
+
+var EXPORT_TAG_COLORS = {
+  "Não Telecom":     { fill:[91,62,150],  text:[255,255,255] },
+  "Telecom":         { fill:[201,162,75], text:[27,42,74] },
+  "Telecom + Ambos": { fill:[138,109,31], text:[255,255,255] },
+  "Ambos":           { fill:[27,42,74],   text:[255,255,255] }
+};
+var EXPORT_QUAD_META = {
+  forcas:        { label:"Forças",        bar:[220,243,227], text:[30,122,61] },
+  fraquezas:     { label:"Fraquezas",     bar:[251,225,225], text:[178,59,59] },
+  oportunidades: { label:"Oportunidades", bar:[220,233,247], text:[21,90,150] },
+  ameacas:       { label:"Ameaças",       bar:[253,235,208], text:[179,105,10] }
+};
+var LOGO_A_DATAURL = "data:image/png;base64,__LOGO_A_B64__";
+
+function buildExportRows(quad){
+  var top = getDisplayTop(quad, topN);
+  return top.map(function(x, i){
+    return { rank: i+1, title: x.it.title, tag: tagLabelFromOrigins(x.it.origins), avg: x.avg, votes: x.total };
+  });
+}
+
+function safeFileLabel(s){
+  return String(s).replace(/[^A-Za-z0-9]+/g, "_");
+}
+
+function drawExportHeader(doc, pageWidth, subtitle){
+  try{ doc.addImage(LOGO_A_DATAURL, "PNG", 40, 26, 72, 23); }catch(e){}
+  doc.setFont("helvetica", "bold"); doc.setFontSize(18); doc.setTextColor(27,42,74);
+  doc.text("Painel SWOT Consolidado", pageWidth/2, 42, { align:"center" });
+  doc.setFont("helvetica", "normal"); doc.setFontSize(11); doc.setTextColor(85,85,85);
+  doc.text("Plano Estratégico: Planejamento Estratégico RV Digital 2027 · " + subtitle, pageWidth/2, 58, { align:"center" });
+  doc.setDrawColor(220,220,220); doc.setLineWidth(1);
+  doc.line(40, 74, pageWidth-40, 74);
+}
+
+function drawExportFooter(doc, pageWidth, pageHeight, rightText){
+  doc.setDrawColor(221,221,221); doc.setLineWidth(1);
+  doc.line(40, pageHeight-34, pageWidth-40, pageHeight-34);
+  doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(120,120,120);
+  doc.text("Planejamento Estratégico RV Digital 2027", 40, pageHeight-20);
+  doc.text(rightText || "", pageWidth-40, pageHeight-20, { align:"right" });
+}
+
+function drawQuadTable(doc, quad, x, y, w){
+  var meta = EXPORT_QUAD_META[quad];
+  var rows = buildExportRows(quad);
+  var barH = 22;
+  doc.setFillColor.apply(doc, meta.bar);
+  doc.rect(x, y, w, barH, "F");
+  doc.setFont("helvetica", "bold"); doc.setFontSize(12);
+  doc.setTextColor.apply(doc, meta.text);
+  doc.text(meta.label, x+10, y+15);
+  y += barH + 16;
+
+  var colRank = 26, colTag = 108, colAvg = 50, colVotes = 50;
+  var colTitle = w - colRank - colTag - colAvg - colVotes;
+
+  doc.setDrawColor(51,51,51); doc.setLineWidth(1);
+  doc.line(x, y, x+w, y);
+  doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(30,30,30);
+  var hx = x;
+  doc.text("#", hx+3, y-5); hx += colRank;
+  doc.text("Proposta", hx+3, y-5); hx += colTitle;
+  doc.text("Tipo", hx+3, y-5); hx += colTag;
+  doc.text("Média", hx+3, y-5); hx += colAvg;
+  doc.text("Votos", hx+3, y-5);
+  y += 4;
+
+  if(!rows.length){
+    doc.setFont("helvetica", "normal"); doc.setFontSize(9.5); doc.setTextColor(120,120,120);
+    doc.text("Ainda sem votos suficientes neste quadrante.", x+4, y+14);
+    y += 22;
+  }
+
+  doc.setFont("helvetica", "normal"); doc.setFontSize(9);
+  rows.forEach(function(r, i){
+    var lines = doc.splitTextToSize(r.title, colTitle - 8);
+    var rh = Math.max(16, lines.length * 10.5 + 6);
+    if(i % 2 === 1){ doc.setFillColor(250,250,250); doc.rect(x, y, w, rh, "F"); }
+    var cy = y + 11;
+    var cx = x;
+    doc.setTextColor(40,40,40);
+    doc.text(String(r.rank), cx+3, cy); cx += colRank;
+    doc.text(lines, cx+3, cy); cx += colTitle;
+    var tagStyle = EXPORT_TAG_COLORS[r.tag] || { fill:[150,150,150], text:[255,255,255] };
+    var pillW = Math.min(colTag - 6, 8 + r.tag.length * 4.4);
+    doc.setFillColor.apply(doc, tagStyle.fill);
+    doc.roundedRect(cx, y + (rh-14)/2, pillW, 14, 4, 4, "F");
+    doc.setFontSize(7.6);
+    doc.setTextColor.apply(doc, tagStyle.text);
+    doc.text(r.tag, cx + pillW/2, y + rh/2 + 2.6, { align:"center" });
+    doc.setFontSize(9); doc.setTextColor(40,40,40);
+    cx += colTag;
+    doc.text(r.avg.toFixed(2), cx+3, cy); cx += colAvg;
+    doc.text(String(r.votes), cx+3, cy);
+    doc.setDrawColor(228,228,228); doc.setLineWidth(0.5);
+    doc.line(x, y+rh, x+w, y+rh);
+    y += rh;
+  });
+
+  var totalVotes = rows.reduce(function(s,r){ return s + r.votes; }, 0);
+  doc.setDrawColor(51,51,51); doc.setLineWidth(1);
+  doc.line(x, y, x+w, y);
+  y += 13;
+  doc.setFont("helvetica", "bold"); doc.setFontSize(9.5); doc.setTextColor(20,20,20);
+  doc.text("Total de votos no Top " + rows.length, x+3, y);
+  doc.text(String(totalVotes), x+w-3, y, { align:"right" });
+  return y + 12;
+}
+
+function getJsPDFCtor(){
+  if(window.jspdf && window.jspdf.jsPDF) return window.jspdf.jsPDF;
+  if(window.jsPDF) return window.jsPDF;
+  throw new Error("Biblioteca de PDF não carregou (verifique sua conexão).");
+}
+
+function exportQuadPDF(quad){
+  var JsPDF = getJsPDFCtor();
+  var pageW = 620, pageH = 760;
+  var doc = new JsPDF({ unit:"pt", format:[pageW, pageH] });
+  drawExportHeader(doc, pageW, "Top " + topN + " — " + EXPORT_QUAD_META[quad].label);
+  drawQuadTable(doc, quad, 40, 96, pageW-80);
+  drawExportFooter(doc, pageW, pageH, "Tipos: Não Telecom · Telecom · Telecom + Ambos · Ambos");
+  doc.save("Top" + topN + "_" + safeFileLabel(EXPORT_QUAD_META[quad].label) + "_RV_Digital_2027.pdf");
+}
+
+function exportTotalPDF(){
+  var JsPDF = getJsPDFCtor();
+  var pageW = 1000, pageH = 700;
+  var doc = new JsPDF({ unit:"pt", format:[pageW, pageH] });
+  var pairs = [["forcas","fraquezas"], ["oportunidades","ameacas"]];
+  pairs.forEach(function(pair, idx){
+    if(idx > 0) doc.addPage([pageW, pageH]);
+    var subtitle = "Top " + topN + " — " + EXPORT_QUAD_META[pair[0]].label + " e " + EXPORT_QUAD_META[pair[1]].label;
+    drawExportHeader(doc, pageW, subtitle);
+    var colW = (pageW - 80 - 30) / 2;
+    drawQuadTable(doc, pair[0], 40, 96, colW);
+    drawQuadTable(doc, pair[1], 40 + colW + 30, 96, colW);
+    drawExportFooter(doc, pageW, pageH, "Tipos: Não Telecom · Telecom · Telecom + Ambos · Ambos");
+  });
+  doc.save("Top" + topN + "_Total_RV_Digital_2027.pdf");
+}
+
+function buildQuadAoa(quad){
+  var meta = EXPORT_QUAD_META[quad];
+  var rows = buildExportRows(quad);
+  var aoa = [
+    ["Painel SWOT Consolidado"],
+    ["Planejamento Estratégico RV Digital 2027 — Top " + topN + " — " + meta.label],
+    [],
+    [meta.label.toUpperCase()],
+    ["#", "Proposta", "Tipo", "Média", "Votos"]
+  ];
+  rows.forEach(function(r){ aoa.push([r.rank, r.title, r.tag, Number(r.avg.toFixed(2)), r.votes]); });
+  var totalVotes = rows.reduce(function(s,r){ return s + r.votes; }, 0);
+  aoa.push(["", "", "Total", "", totalVotes]);
+  return aoa;
+}
+
+function quadSheet(quad){
+  var ws = XLSX.utils.aoa_to_sheet(buildQuadAoa(quad));
+  ws["!cols"] = [{wch:5},{wch:62},{wch:18},{wch:9},{wch:9}];
+  ws["!merges"] = [
+    { s:{r:0,c:0}, e:{r:0,c:4} },
+    { s:{r:1,c:0}, e:{r:1,c:4} },
+    { s:{r:3,c:0}, e:{r:3,c:4} }
+  ];
+  return ws;
+}
+
+function exportQuadXLSB(quad){
+  if(typeof XLSX === "undefined"){ alert("Biblioteca de planilha não carregou (verifique sua conexão)."); return; }
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, quadSheet(quad), EXPORT_QUAD_META[quad].label.slice(0,31));
+  XLSX.writeFile(wb, "Top" + topN + "_" + safeFileLabel(EXPORT_QUAD_META[quad].label) + "_RV_Digital_2027.xlsb", { bookType:"xlsb" });
+}
+
+function exportTotalXLSB(){
+  if(typeof XLSX === "undefined"){ alert("Biblioteca de planilha não carregou (verifique sua conexão)."); return; }
+  var wb = XLSX.utils.book_new();
+  var order = ["forcas","fraquezas","oportunidades","ameacas"];
+  var summaryAoa = [
+    ["Painel SWOT Consolidado"],
+    ["Planejamento Estratégico RV Digital 2027 — Resumo Top " + topN],
+    [],
+    ["Quadrante", "Itens no Top", "Total de votos"]
+  ];
+  order.forEach(function(quad){
+    var rows = buildExportRows(quad);
+    var totalVotes = rows.reduce(function(s,r){ return s + r.votes; }, 0);
+    summaryAoa.push([EXPORT_QUAD_META[quad].label, rows.length, totalVotes]);
+  });
+  var wsSummary = XLSX.utils.aoa_to_sheet(summaryAoa);
+  wsSummary["!cols"] = [{wch:18},{wch:14},{wch:16}];
+  wsSummary["!merges"] = [{ s:{r:0,c:0}, e:{r:0,c:2} }, { s:{r:1,c:0}, e:{r:1,c:2} }];
+  XLSX.utils.book_append_sheet(wb, wsSummary, "Resumo");
+  order.forEach(function(quad){
+    XLSX.utils.book_append_sheet(wb, quadSheet(quad), EXPORT_QUAD_META[quad].label.slice(0,31));
+  });
+  XLSX.writeFile(wb, "Top" + topN + "_Total_RV_Digital_2027.xlsb", { bookType:"xlsb" });
+}
+
 
 (async function init(){
   var sess = await sb.auth.getSession();
