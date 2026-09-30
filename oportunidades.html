@@ -464,8 +464,10 @@ async function saveAllVotes(){
   if(countDirty() === 0) return;
   saving = true; updateSaveBar();
   try{
-    var payload = { quadrant: QUAD_KEY, client_id: myId, scores: Object.assign({}, myVotes), updated_at: new Date().toISOString() };
-    var res = await sb.from("votes").upsert(payload, { onConflict: "quadrant,client_id" });
+    // Grava o voto chamando a função save_vote (ver schema.sql) em vez de um
+    // upsert direto na tabela: assim a gravação (mesmo na 2ª vez, quando já
+    // existe um voto salvo) não depende de permissão de leitura da tabela.
+    var res = await sb.rpc("save_vote", { p_quadrant: QUAD_KEY, p_client_id: myId, p_scores: Object.assign({}, myVotes) });
     if(res.error) throw res.error;
     savedVotes = Object.assign({}, myVotes);
     saving = false; paintMyVotes();
