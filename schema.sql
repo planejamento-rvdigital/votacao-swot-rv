@@ -169,13 +169,109 @@ create policy "admin pode remover edicoes de texto" on item_edits
   for delete to authenticated
   using (true);
 
+-- Admin pode apagar todos os votos de um quadrante (botão "Reiniciar votação").
+drop policy if exists "admin pode remover votos" on votes;
+create policy "admin pode remover votos" on votes
+  for delete to authenticated
+  using (true);
+
+-- ============================================================================
+-- Tabela de propostas ADICIONADAS pelo admin durante a reunião (além das
+-- que já vêm prontas no site). Aparecem na votação como qualquer outro item.
+-- ============================================================================
+create table if not exists item_added (
+  quadrant text not null check (quadrant in ('forcas','fraquezas','oportunidades','ameacas')),
+  item_id text not null,
+  title text not null,
+  origin text not null default 'Ambos' check (origin in ('Telecom','Ambos')),
+  division text,
+  created_at timestamptz not null default now(),
+  primary key (quadrant, item_id)
+);
+alter table item_added enable row level security;
+
+drop policy if exists "qualquer pessoa pode ler propostas adicionadas" on item_added;
+create policy "qualquer pessoa pode ler propostas adicionadas" on item_added
+  for select to public
+  using (true);
+
+drop policy if exists "admin pode criar propostas" on item_added;
+create policy "admin pode criar propostas" on item_added
+  for insert to authenticated
+  with check (true);
+
+drop policy if exists "admin pode remover propostas adicionadas" on item_added;
+create policy "admin pode remover propostas adicionadas" on item_added
+  for delete to authenticated
+  using (true);
+
+-- ============================================================================
+-- Tabela de propostas ORIGINAIS que o admin decidiu OCULTAR da votação
+-- (não apaga a proposta do site, só esconde — pode ser restaurada depois).
+-- ============================================================================
+create table if not exists item_removed (
+  quadrant text not null check (quadrant in ('forcas','fraquezas','oportunidades','ameacas')),
+  item_id text not null,
+  removed_at timestamptz not null default now(),
+  primary key (quadrant, item_id)
+);
+alter table item_removed enable row level security;
+
+drop policy if exists "qualquer pessoa pode ler propostas ocultadas" on item_removed;
+create policy "qualquer pessoa pode ler propostas ocultadas" on item_removed
+  for select to public
+  using (true);
+
+drop policy if exists "admin pode ocultar propostas" on item_removed;
+create policy "admin pode ocultar propostas" on item_removed
+  for insert to authenticated
+  with check (true);
+
+drop policy if exists "admin pode restaurar propostas ocultadas" on item_removed;
+create policy "admin pode restaurar propostas ocultadas" on item_removed
+  for delete to authenticated
+  using (true);
+
+-- ============================================================================
+-- Tabela de ordem manual do ranking (Top N): o admin pode reordenar as
+-- posições exibidas no painel administrativo. Só o admin lê/escreve aqui —
+-- não interfere na votação em si, apenas na exibição do ranking.
+-- ============================================================================
+create table if not exists rank_overrides (
+  quadrant text not null check (quadrant in ('forcas','fraquezas','oportunidades','ameacas')),
+  item_id text not null,
+  position integer not null,
+  updated_at timestamptz not null default now(),
+  primary key (quadrant, item_id)
+);
+alter table rank_overrides enable row level security;
+
+drop policy if exists "admin pode ler ordem do ranking" on rank_overrides;
+create policy "admin pode ler ordem do ranking" on rank_overrides
+  for select to authenticated
+  using (true);
+
+drop policy if exists "admin pode gravar ordem do ranking" on rank_overrides;
+create policy "admin pode gravar ordem do ranking" on rank_overrides
+  for insert to authenticated
+  with check (true);
+
+drop policy if exists "admin pode atualizar ordem do ranking" on rank_overrides;
+create policy "admin pode atualizar ordem do ranking" on rank_overrides
+  for update to authenticated
+  using (true)
+  with check (true);
+
+drop policy if exists "admin pode limpar ordem do ranking" on rank_overrides;
+create policy "admin pode limpar ordem do ranking" on rank_overrides
+  for delete to authenticated
+  using (true);
+
 -- ============================================================================
 -- Verificação rápida: rode esta consulta separadamente (selecione só as
 -- linhas abaixo e clique em "Run") para conferir se tudo ficou certo.
--- Você deve ver 8 linhas no total, e nas policies de "votes" (insert/update)
--- e "voting_config" (select) a coluna "roles" deve mostrar {public}.
 -- ============================================================================
 -- select schemaname, tablename, policyname, roles, cmd
 -- from pg_policies
--- where tablename in ('votes','voting_config','item_edits')
+-- where tablename in ('votes','voting_config','item_edits','item_added','item_removed','rank_overrides')
 -- order by tablename, policyname;
