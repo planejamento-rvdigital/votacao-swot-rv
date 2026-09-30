@@ -1559,22 +1559,22 @@ INDEX_TEMPLATE = HEAD.replace("__PAGE_TITLE__", "Vota&ccedil;&atilde;o SWOT &mda
 <main style="max-width:640px;">
   <div class="menu-grid">
     <a class="menu-card" href="forcas.html" style="--mc-accent:#00b554; --mc-soft:#e2f8ea;">
-      <div class="menu-card-icon">&#128170;</div>
+      <div class="menu-card-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg></div>
       <div class="menu-card-body"><div class="menu-card-title">For&ccedil;as</div><div class="menu-card-desc">Vote nas propostas de For&ccedil;as do painel SWOT.</div></div>
       <div class="menu-card-arrow">&rarr;</div>
     </a>
     <a class="menu-card" href="fraquezas.html" style="--mc-accent:#d14343; --mc-soft:#fbe6e6;">
-      <div class="menu-card-icon">&#9888;&#65039;</div>
+      <div class="menu-card-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg></div>
       <div class="menu-card-body"><div class="menu-card-title">Fraquezas</div><div class="menu-card-desc">Vote nas propostas de Fraquezas do painel SWOT.</div></div>
       <div class="menu-card-arrow">&rarr;</div>
     </a>
     <a class="menu-card" href="oportunidades.html" style="--mc-accent:#14548c; --mc-soft:#e4edf6;">
-      <div class="menu-card-icon">&#128161;</div>
+      <div class="menu-card-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></div>
       <div class="menu-card-body"><div class="menu-card-title">Oportunidades</div><div class="menu-card-desc">Vote nas propostas de Oportunidades do painel SWOT.</div></div>
       <div class="menu-card-arrow">&rarr;</div>
     </a>
     <a class="menu-card" href="ameacas.html" style="--mc-accent:#f5a100; --mc-soft:#fdf0dc;">
-      <div class="menu-card-icon">&#9889;</div>
+      <div class="menu-card-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg></div>
       <div class="menu-card-body"><div class="menu-card-title">Amea&ccedil;as</div><div class="menu-card-desc">Vote nas propostas de Amea&ccedil;as do painel SWOT.</div></div>
       <div class="menu-card-arrow">&rarr;</div>
     </a>
