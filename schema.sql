@@ -297,18 +297,34 @@ create policy "admin pode limpar ordem do ranking" on rank_overrides
   using (true);
 
 -- ============================================================================
--- Tabela NOVA: priorização (checkbox do admin na etapa Telecom + Ambos).
--- A existência de uma linha (quadrant, item_id) significa "priorizado".
--- É sempre relativa à etapa Telecom + Ambos (é dali que vem a priorização
--- que define o SWOT final e os itens com tag Ambos que migram para a
--- votação Não Telecom + Ambos) — por isso não tem coluna "stage".
+-- Tabela: priorização (checkbox do admin), agora por (etapa, quadrante).
+-- A existência de uma linha (stage, quadrant, item_id) significa "priorizado
+-- naquela etapa". A priorização feita na etapa Telecom + Ambos continua
+-- sendo a que define quais itens com tag Ambos migram para a votação Não
+-- Telecom + Ambos (ver lógica de migração em voto.html/admin.html); a
+-- priorização feita na própria etapa Não Telecom + Ambos (itens nativos,
+-- não migrados) é o que alimenta a categoria "Não Telecom" da aba
+-- "Consolidação Final" do painel admin.
+--
+-- Coluna "stage" adicionada por migração aditiva (mesmo padrão das outras
+-- tabelas): toda linha que já existia antes desta migração foi gravada
+-- quando item_prioritized só podia significar a etapa Telecom + Ambos (não
+-- havia outra etapa com o checkbox liberado), por isso o default/backfill é
+-- 'telecom'.
 -- ============================================================================
 create table if not exists item_prioritized (
+  stage text not null default 'telecom' check (stage in ('telecom','naotelecom')),
   quadrant text not null check (quadrant in ('forcas','fraquezas','oportunidades','ameacas')),
   item_id text not null,
   prioritized_at timestamptz not null default now(),
-  primary key (quadrant, item_id)
+  primary key (stage, quadrant, item_id)
 );
+alter table item_prioritized add column if not exists stage text not null default 'telecom';
+update item_prioritized set stage = 'telecom' where stage is null;
+alter table item_prioritized drop constraint if exists item_prioritized_pkey;
+alter table item_prioritized add constraint item_prioritized_pkey primary key (stage, quadrant, item_id);
+alter table item_prioritized drop constraint if exists item_prioritized_stage_check;
+alter table item_prioritized add constraint item_prioritized_stage_check check (stage in ('telecom','naotelecom'));
 alter table item_prioritized enable row level security;
 
 drop policy if exists "qualquer pessoa pode ler priorizacao" on item_prioritized;

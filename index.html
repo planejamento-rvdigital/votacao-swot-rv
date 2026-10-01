@@ -20,12 +20,37 @@
   --gold:#f5a100; --yellow:#fde90e; --green:#00b554; --red:#d14343;
   --radius:14px;
   --shadow:0 1px 2px rgba(13,45,91,.06), 0 10px 30px -12px rgba(13,45,91,.16);
+  /* Text-safe link/accent color: used wherever navy-lt sits ON TOP OF a themed
+     background (links, chip text, hover states, notes). Kept separate from
+     --navy-lt itself because --navy-lt also doubles as a GRADIENT/background
+     color (header.hero) where lightening it would wreck the white text that
+     sits over it in dark mode. */
+  --link:#14548c;
+  /* Fixed (non-themed) neutral button background: used only where a white
+     label sits on top of what would otherwise be --ink-soft. --ink-soft
+     deliberately brightens in dark mode (for readability as TEXT), which
+     would ruin white-on-ink-soft contrast if reused as a background. */
+  --muted-btn:#5c6c80;
+  /* Tag / pill / badge color families (origin chips, status flashes, admin
+     banners). Each is a self-contained fg+bg(+border) triple so it is legible
+     on its own in both themes; dark mode gets a darker bg + lighter fg. */
+  --tag-telecom-fg:#8a5a00; --tag-telecom-bg:#fdf0dc; --tag-telecom-border:#e3c07a;
+  --tag-ambos-fg:#5b3fa0; --tag-ambos-bg:#efeaf9; --tag-ambos-border:#c9bce8;
+  --tag-naotelecom-fg:#0d6b4a; --tag-naotelecom-bg:#e2f7ee; --tag-naotelecom-border:#9fd9c4;
+  --status-ok-fg:#0d6b3a; --status-ok-bg:#e2f8ea; --status-ok-border:#b6e8ca;
+  --status-err-fg:#9c2222; --status-err-bg:#fbe6e6; --status-err-border:#f0bcbc;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     --ink:#e9edf5; --ink-soft:#9aa8bd; --paper:#0c1220; --surface:#141b2b; --surface-2:#1a2336;
     --line:#28324a; --accent-soft:#1c2740;
     --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -12px rgba(0,0,0,.6);
+    --link:#5b9fd6;
+    --tag-telecom-fg:#f0c674; --tag-telecom-bg:#3a2f10; --tag-telecom-border:#6b5420;
+    --tag-ambos-fg:#c9b3f0; --tag-ambos-bg:#2a2140; --tag-ambos-border:#4a3a70;
+    --tag-naotelecom-fg:#7fe0ac; --tag-naotelecom-bg:#122a22; --tag-naotelecom-border:#1f4a38;
+    --status-ok-fg:#7fe0ac; --status-ok-bg:#122a22; --status-ok-border:#1f4a38;
+    --status-err-fg:#f29b9b; --status-err-bg:#3a1515; --status-err-border:#6b2a2a;
   }
 }
 *{box-sizing:border-box}
@@ -37,7 +62,7 @@ body{
 }
 .mono{font-family:"Ubuntu Mono",monospace;}
 h1,h2,h3{font-family:"Ubuntu",sans-serif; font-weight:700; margin:0;}
-a{color:var(--navy-lt)}
+a{color:var(--link)}
 
 .rv-logo{flex:none; display:block;}
 .rv-logo img{display:block; width:100%; height:100%; object-fit:contain;}
@@ -106,8 +131,8 @@ main{max-width:900px; margin:0 auto; padding:26px 20px 90px;}
 }
 .anon-note .ic{margin-right:6px;}
 .already-voted-note{
-  margin-top:14px; font-size:13.5px; color:#1b4a8a;
-  padding:10px 14px; background:#e4edf6; border:1px solid #bcd2e6; border-radius:10px; line-height:1.5;
+  margin-top:14px; font-size:13.5px; color:var(--link);
+  padding:10px 14px; background:var(--accent-soft); border:1px solid var(--line); border-radius:10px; line-height:1.5;
 }
 .tag-legend{
   margin-top:14px; font-size:13.5px; color:var(--ink-soft); line-height:1.7;
@@ -137,21 +162,21 @@ main{max-width:900px; margin:0 auto; padding:26px 20px 90px;}
 .item-title{font-size:16.5px; font-weight:500; flex:1;}
 .item-meta{display:flex; gap:6px; flex-wrap:wrap; margin:8px 0 0 40px;}
 .chip{ font-size:12px; padding:3px 9px; border-radius:999px; border:1px solid var(--line); color:var(--ink-soft); background:var(--surface-2); font-weight:500; }
-.chip.type-c{color:var(--navy-lt); border-color:var(--navy-lt); background:var(--accent-soft);}
-.chip.origin-telecom, .chip.tag-telecom{color:#8a5a00; border-color:#e3c07a; background:#fdf0dc;}
-.chip.origin-ambos, .chip.tag-ambos{color:#5b3fa0; border-color:#c9bce8; background:#efeaf9;}
-.chip.origin-naotelecom, .chip.tag-naotelecom{color:#0d6b4a; border-color:#9fd9c4; background:#e2f7ee;}
-.chip.tag-telecomambos{color:#14548c; border-color:#bcd2e6; background:#e4edf6;}
-.chip.migrated-chip{color:#5b3fa0; border-color:#c9bce8; background:#efeaf9; font-weight:700;}
+.chip.type-c{color:var(--link); border-color:var(--link); background:var(--accent-soft);}
+.chip.origin-telecom, .chip.tag-telecom{color:var(--tag-telecom-fg); border-color:var(--tag-telecom-border); background:var(--tag-telecom-bg);}
+.chip.origin-ambos, .chip.tag-ambos{color:var(--tag-ambos-fg); border-color:var(--tag-ambos-border); background:var(--tag-ambos-bg);}
+.chip.origin-naotelecom, .chip.tag-naotelecom{color:var(--tag-naotelecom-fg); border-color:var(--tag-naotelecom-border); background:var(--tag-naotelecom-bg);}
+.chip.tag-telecomambos{color:var(--link); border-color:var(--line); background:var(--accent-soft);}
+.chip.migrated-chip{color:var(--tag-ambos-fg); border-color:var(--tag-ambos-border); background:var(--tag-ambos-bg); font-weight:700;}
 details.orig{margin:8px 0 0 40px;}
-details.orig summary{font-size:12.5px; color:var(--navy-lt); cursor:pointer; list-style:none; font-weight:500;}
+details.orig summary{font-size:12.5px; color:var(--link); cursor:pointer; list-style:none; font-weight:500;}
 details.orig summary::-webkit-details-marker{display:none;}
 details.orig ol{margin:8px 0 0; padding-left:18px; font-size:13px; color:var(--ink-soft);}
 details.orig ol li{margin-bottom:4px;}
 details.orig .oi-origin{font-size:10.5px; font-weight:700; padding:1px 6px; border-radius:999px; margin-left:6px; white-space:nowrap;}
-details.orig .oi-origin.t{color:#8a5a00; background:#fdf0dc;}
-details.orig .oi-origin.a{color:#5b3fa0; background:#efeaf9;}
-details.orig .oi-origin.nt{color:#0d6b4a; background:#e2f7ee;}
+details.orig .oi-origin.t{color:var(--tag-telecom-fg); background:var(--tag-telecom-bg);}
+details.orig .oi-origin.a{color:var(--tag-ambos-fg); background:var(--tag-ambos-bg);}
+details.orig .oi-origin.nt{color:var(--tag-naotelecom-fg); background:var(--tag-naotelecom-bg);}
 details.orig .reason{margin-top:6px; font-size:12.5px; color:var(--ink-soft); font-style:italic;}
 
 .migrated-heading{ margin:26px 0 12px; font-size:14px; font-weight:700; color:var(--ink-soft); padding-top:14px; border-top:1px dashed var(--line); }
@@ -186,16 +211,16 @@ details.orig .reason{margin-top:6px; font-size:12.5px; color:var(--ink-soft); fo
   display:flex; align-items:center; gap:8px;
 }
 .save-btn:disabled{background:var(--surface-2); color:var(--ink-soft); cursor:default;}
-.save-btn.state-saving{background:var(--ink-soft);}
+.save-btn.state-saving{background:var(--muted-btn);}
 .save-btn.state-saved{background:var(--green);}
 .save-btn.state-error{background:var(--red);}
 .save-flash{
   display:none; align-items:center; gap:10px; margin-top:10px;
-  background:#e2f8ea; color:#0d6b3a; border:1px solid #b6e8ca; border-radius:10px;
+  background:var(--status-ok-bg); color:var(--status-ok-fg); border:1px solid var(--status-ok-border); border-radius:10px;
   padding:10px 14px; font-size:13px; font-weight:600;
 }
 .save-flash.show{display:flex;}
-.save-flash.error{background:#fbe6e6; color:#9c2222; border-color:#f0bcbc;}
+.save-flash.error{background:var(--status-err-bg); color:var(--status-err-fg); border-color:var(--status-err-border);}
 
 .admin-toolbar{ display:flex; gap:18px; align-items:center; flex-wrap:wrap; margin-bottom:18px; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:14px 18px; box-shadow:var(--shadow); }
 .stat{display:flex; flex-direction:column; gap:2px;}
@@ -240,6 +265,21 @@ details.orig .reason{margin-top:6px; font-size:12.5px; color:var(--ink-soft); fo
 .summary-quad h3 .dot{width:10px; height:10px; border-radius:50%; display:inline-block; flex:none;}
 .empty-note{ color:var(--ink-soft); font-size:13px; padding:10px 2px; }
 
+.consol-warning{ background:var(--tag-telecom-bg); border:1px solid var(--tag-telecom-border); color:var(--tag-telecom-fg); border-radius:var(--radius); padding:14px 18px; margin-bottom:18px; font-size:13.5px; line-height:1.5; }
+.consol-warning b{font-weight:700;}
+.consol-summary{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:12px 16px; margin-bottom:16px; box-shadow:var(--shadow); font-size:13.5px; color:var(--ink-soft); }
+.consol-summary b{color:var(--ink);}
+.consol-filter{ display:flex; align-items:center; gap:7px; flex-wrap:wrap; margin:0 0 20px; }
+.consol-filter button{ border:1px solid var(--line); background:var(--surface); color:var(--ink-soft); padding:8px 16px; border-radius:999px; font-size:13px; font-weight:600; cursor:pointer; transition:.12s; }
+.consol-filter button:hover{ border-color:var(--accent); }
+.consol-filter button.active{ background:var(--accent); color:#fff; border-color:var(--accent); }
+.consol-quad{ margin-bottom:24px; }
+.consol-quad h3{ font-size:16px; margin:0 0 10px; display:flex; align-items:center; gap:8px; }
+.consol-quad h3 .dot{width:10px; height:10px; border-radius:50%; display:inline-block; flex:none;}
+.consol-item{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:12px 16px; margin-bottom:8px; box-shadow:var(--shadow); display:flex; align-items:flex-start; gap:10px; flex-wrap:wrap; }
+.consol-item .consol-item-title{flex:1; min-width:200px; font-size:14.5px; font-weight:500;}
+.consol-item .consol-item-stage{display:block; margin-top:4px; font-size:11.5px; color:var(--ink-soft); font-weight:400;}
+
 .edit-item textarea{ width:100%; border:1px solid var(--line); border-radius:8px; padding:9px 11px; font-family:"Ubuntu",sans-serif; font-size:13.5px; resize:vertical; color:var(--ink); background:var(--surface); }
 .edit-item .edit-actions{display:flex; gap:8px; align-items:center; margin-top:9px; flex-wrap:wrap;}
 .edit-item .edit-save{ border:none; border-radius:999px; padding:8px 16px; font-weight:700; font-size:12.5px; cursor:pointer; color:#fff; background:var(--accent); }
@@ -256,7 +296,7 @@ details.orig .reason{margin-top:6px; font-size:12.5px; color:var(--ink-soft); fo
 .export-bar .export-label{ font-size:12.5px; font-weight:700; color:var(--ink-soft); margin-right:2px; }
 .export-bar select.export-format{ border:1px solid var(--line); background:var(--surface); color:var(--ink); border-radius:8px; padding:7px 10px; font-size:12.5px; font-family:inherit; }
 .export-bar button.export-btn{ border:1px solid var(--line); background:var(--surface); color:var(--ink); border-radius:999px; padding:8px 16px; font-size:12.5px; font-weight:700; cursor:pointer; }
-.export-bar button.export-btn:hover{ border-color:var(--navy-lt); color:var(--navy-lt); }
+.export-bar button.export-btn:hover{ border-color:var(--link); color:var(--link); }
 .export-bar button.export-btn.export-total{ background:var(--navy); color:#fff; border-color:var(--navy); }
 .export-bar button.export-btn.export-total:hover{ opacity:.88; color:#fff; }
 .export-bar .export-status{ font-size:12px; color:var(--ink-soft); margin-left:2px; }
@@ -273,15 +313,15 @@ details.orig .reason{margin-top:6px; font-size:12.5px; color:var(--ink-soft); fo
 .add-item-box .add-row{display:flex; gap:8px; align-items:center; margin-top:9px; flex-wrap:wrap;}
 .add-item-box select{ border:1px solid var(--line); border-radius:8px; padding:8px 10px; font-size:13px; color:var(--ink); background:var(--surface); }
 .add-item-btn{ border:none; border-radius:999px; padding:8px 16px; font-weight:700; font-size:12.5px; cursor:pointer; color:#fff; background:var(--green); }
-.remove-item-btn{ border:1px solid #e0a0a0; background:#fbe9e9; color:#9c2222; border-radius:999px; padding:8px 16px; font-weight:600; font-size:12.5px; cursor:pointer; }
+.remove-item-btn{ border:1px solid var(--status-err-border); background:var(--status-err-bg); color:var(--status-err-fg); border-radius:999px; padding:8px 16px; font-weight:600; font-size:12.5px; cursor:pointer; }
 .added-badge{color:var(--green); font-weight:700;}
-.migrated-badge{color:#5b3fa0; font-weight:700;}
+.migrated-badge{color:var(--tag-ambos-fg); font-weight:700;}
 .removed-panel{ background:var(--surface-2); border:1px solid var(--line); border-radius:var(--radius); padding:14px 16px; margin-top:18px; }
 .removed-panel h4{font-size:13px; margin:0 0 10px; color:var(--ink-soft);}
 .removed-row{ display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--line); font-size:13px; }
 .removed-row:last-child{border-bottom:none;}
 .removed-row .rt{flex:1; color:var(--ink-soft);}
-.restore-item-btn{ border:1px solid var(--line); background:var(--surface); color:var(--navy-lt); border-radius:999px; padding:6px 13px; font-size:12px; font-weight:600; cursor:pointer; flex:none; }
+.restore-item-btn{ border:1px solid var(--line); background:var(--surface); color:var(--link); border-radius:999px; padding:6px 13px; font-size:12px; font-weight:600; cursor:pointer; flex:none; }
 .reset-confirm{background:var(--red) !important;}
 
 .menu-grid{ display:grid; gap:14px; margin-top:6px; }
@@ -302,13 +342,13 @@ details.orig .reason{margin-top:6px; font-size:12.5px; color:var(--ink-soft); fo
 .menu-card-desc{font-size:13.5px; color:var(--ink-soft); line-height:1.4;}
 .menu-card-arrow{font-size:18px; color:var(--ink-soft); flex:none; transition:.15s;}
 .menu-card:hover .menu-card-arrow{color:var(--mc-accent); transform:translateX(2px);}
-.voted-badge{ font-size:10.5px; font-weight:700; color:#0d6b3a; background:#e2f8ea; border:1px solid #b6e8ca; border-radius:999px; padding:2px 8px; white-space:nowrap; }
+.voted-badge{ font-size:10.5px; font-weight:700; color:var(--status-ok-fg); background:var(--status-ok-bg); border:1px solid var(--status-ok-border); border-radius:999px; padding:2px 8px; white-space:nowrap; }
 .admin-link-pill{
   display:inline-flex; align-items:center; gap:7px; text-decoration:none;
   color:var(--ink-soft); font-size:13px; font-weight:600; padding:10px 18px;
   border:1px solid var(--line); border-radius:999px; background:var(--surface); transition:.15s;
 }
-.admin-link-pill:hover{ color:var(--navy); border-color:var(--navy-lt); background:var(--surface-2); }
+.admin-link-pill:hover{ color:var(--link); border-color:var(--link); background:var(--surface-2); }
 .index-footnote{ text-align:center; color:var(--ink-soft); font-size:12.5px; margin-top:14px; line-height:1.5; }
 
 .stage-grid{ display:grid; gap:18px; margin-top:6px; grid-template-columns:1fr; }
@@ -325,9 +365,9 @@ details.orig .reason{margin-top:6px; font-size:12.5px; color:var(--ink-soft); fo
 }
 .stage-card-title{font-size:20px; font-weight:700; color:var(--ink); margin-bottom:6px;}
 .stage-card-desc{font-size:14px; color:var(--ink-soft); line-height:1.45;}
-.stage-card-note{margin-top:12px; font-size:12.5px; color:var(--navy-lt); background:var(--accent-soft); border-radius:8px; padding:8px 10px; line-height:1.4;}
+.stage-card-note{margin-top:12px; font-size:12.5px; color:var(--link); background:var(--accent-soft); border-radius:8px; padding:8px 10px; line-height:1.4;}
 .step-back{ display:inline-flex; align-items:center; gap:6px; color:var(--ink-soft); font-size:13.5px; font-weight:600; text-decoration:none; margin-bottom:16px; cursor:pointer; border:none; background:none; padding:0; }
-.step-back:hover{color:var(--navy);}
+.step-back:hover{color:var(--link);}
 #step2-telecom, #step2-naotelecom{display:none;}
 
 .gate{ max-width:420px; margin:60px auto; text-align:center; padding:30px; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); }
@@ -336,10 +376,35 @@ details.orig .reason{margin-top:6px; font-size:12.5px; color:var(--ink-soft); fo
 .gate button{ margin-top:14px; width:100%; border:none; border-radius:999px; padding:12px; font-weight:700; font-size:14.5px; cursor:pointer; color:#fff; background:var(--navy); }
 .gate .err{ color:var(--red); font-size:12.5px; margin-top:10px; min-height:16px; }
 
+.fatal-error-box{
+  background:var(--status-err-bg); border:1px solid var(--status-err-border); color:var(--status-err-fg);
+  border-radius:10px; padding:18px 20px; font-size:14px; line-height:1.5;
+}
+
 footer.pagefoot{ background:var(--surface); border-top:1px solid var(--line); margin-top:30px; padding:22px 20px; }
 .pagefoot-inner{max-width:900px; margin:0 auto; display:flex; align-items:center; gap:14px;}
 .pagefoot-logo{width:32px; height:32px;}
 .pagefoot-text{font-size:12px; color:var(--ink-soft); line-height:1.4;}
+
+.device-id-box{ max-width:900px; margin:14px auto 0; padding-top:14px; border-top:1px solid var(--line); }
+.device-id-label{ font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--ink-soft); margin-bottom:6px; }
+.device-id-value-row{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.device-id-value{ font-family:"Ubuntu Mono",monospace; font-size:12.5px; letter-spacing:.03em; color:var(--ink-soft); background:var(--surface-2); border:1px solid var(--line); border-radius:8px; padding:6px 10px; word-break:break-all; }
+.device-id-copy-btn{ border:1px solid var(--line); border-radius:999px; padding:5px 14px; font-size:12px; font-weight:600; cursor:pointer; color:var(--ink-soft); background:var(--surface); transition:.15s; flex:none; }
+.device-id-copy-btn:hover{ background:var(--surface-2); }
+.device-id-copy-btn.copied{ background:var(--status-ok-bg); color:var(--status-ok-fg); border-color:var(--status-ok-border); }
+.device-id-help{ font-size:11.5px; color:var(--ink-soft); margin-top:6px; line-height:1.4; max-width:560px; }
+
+.device-reset-box{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:12px 18px; margin-bottom:18px; box-shadow:var(--shadow); }
+.device-reset-label{ font-size:12.5px; font-weight:700; color:var(--ink-soft); margin-bottom:8px; }
+.device-reset-label .device-reset-sub{ font-weight:400; }
+.device-reset-row{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.device-reset-input{ flex:1; min-width:220px; border:1px solid var(--line); border-radius:8px; padding:8px 11px; font-family:"Ubuntu Mono",monospace; font-size:12.5px; color:var(--ink); background:var(--surface-2); }
+.device-reset-btn{ border:none; border-radius:999px; padding:8px 16px; font-weight:700; font-size:12.5px; cursor:pointer; color:#fff; background:#b23b3b; flex:none; }
+.device-reset-btn:disabled{ background:var(--muted-btn); cursor:default; }
+.device-reset-status{ font-size:12px; font-weight:600; margin-top:8px; min-height:15px; }
+.device-reset-status.ok{ color:var(--status-ok-fg); }
+.device-reset-status.err{ color:var(--status-err-fg); }
 
 @media (max-width:600px){
   .vote-row{flex-direction:column;}

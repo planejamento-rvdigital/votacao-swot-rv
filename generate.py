@@ -29,12 +29,37 @@ BASE_CSS = r"""
   --gold:#f5a100; --yellow:#fde90e; --green:#00b554; --red:#d14343;
   --radius:14px;
   --shadow:0 1px 2px rgba(13,45,91,.06), 0 10px 30px -12px rgba(13,45,91,.16);
+  /* Text-safe link/accent color: used wherever navy-lt sits ON TOP OF a themed
+     background (links, chip text, hover states, notes). Kept separate from
+     --navy-lt itself because --navy-lt also doubles as a GRADIENT/background
+     color (header.hero) where lightening it would wreck the white text that
+     sits over it in dark mode. */
+  --link:#14548c;
+  /* Fixed (non-themed) neutral button background: used only where a white
+     label sits on top of what would otherwise be --ink-soft. --ink-soft
+     deliberately brightens in dark mode (for readability as TEXT), which
+     would ruin white-on-ink-soft contrast if reused as a background. */
+  --muted-btn:#5c6c80;
+  /* Tag / pill / badge color families (origin chips, status flashes, admin
+     banners). Each is a self-contained fg+bg(+border) triple so it is legible
+     on its own in both themes; dark mode gets a darker bg + lighter fg. */
+  --tag-telecom-fg:#8a5a00; --tag-telecom-bg:#fdf0dc; --tag-telecom-border:#e3c07a;
+  --tag-ambos-fg:#5b3fa0; --tag-ambos-bg:#efeaf9; --tag-ambos-border:#c9bce8;
+  --tag-naotelecom-fg:#0d6b4a; --tag-naotelecom-bg:#e2f7ee; --tag-naotelecom-border:#9fd9c4;
+  --status-ok-fg:#0d6b3a; --status-ok-bg:#e2f8ea; --status-ok-border:#b6e8ca;
+  --status-err-fg:#9c2222; --status-err-bg:#fbe6e6; --status-err-border:#f0bcbc;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     --ink:#e9edf5; --ink-soft:#9aa8bd; --paper:#0c1220; --surface:#141b2b; --surface-2:#1a2336;
     --line:#28324a; --accent-soft:#1c2740;
     --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -12px rgba(0,0,0,.6);
+    --link:#5b9fd6;
+    --tag-telecom-fg:#f0c674; --tag-telecom-bg:#3a2f10; --tag-telecom-border:#6b5420;
+    --tag-ambos-fg:#c9b3f0; --tag-ambos-bg:#2a2140; --tag-ambos-border:#4a3a70;
+    --tag-naotelecom-fg:#7fe0ac; --tag-naotelecom-bg:#122a22; --tag-naotelecom-border:#1f4a38;
+    --status-ok-fg:#7fe0ac; --status-ok-bg:#122a22; --status-ok-border:#1f4a38;
+    --status-err-fg:#f29b9b; --status-err-bg:#3a1515; --status-err-border:#6b2a2a;
   }
 }
 *{box-sizing:border-box}
@@ -46,7 +71,7 @@ body{
 }
 .mono{font-family:"Ubuntu Mono",monospace;}
 h1,h2,h3{font-family:"Ubuntu",sans-serif; font-weight:700; margin:0;}
-a{color:var(--navy-lt)}
+a{color:var(--link)}
 
 .rv-logo{flex:none; display:block;}
 .rv-logo img{display:block; width:100%; height:100%; object-fit:contain;}
@@ -115,8 +140,8 @@ main{max-width:900px; margin:0 auto; padding:26px 20px 90px;}
 }
 .anon-note .ic{margin-right:6px;}
 .already-voted-note{
-  margin-top:14px; font-size:13.5px; color:#1b4a8a;
-  padding:10px 14px; background:#e4edf6; border:1px solid #bcd2e6; border-radius:10px; line-height:1.5;
+  margin-top:14px; font-size:13.5px; color:var(--link);
+  padding:10px 14px; background:var(--accent-soft); border:1px solid var(--line); border-radius:10px; line-height:1.5;
 }
 .tag-legend{
   margin-top:14px; font-size:13.5px; color:var(--ink-soft); line-height:1.7;
@@ -146,21 +171,21 @@ main{max-width:900px; margin:0 auto; padding:26px 20px 90px;}
 .item-title{font-size:16.5px; font-weight:500; flex:1;}
 .item-meta{display:flex; gap:6px; flex-wrap:wrap; margin:8px 0 0 40px;}
 .chip{ font-size:12px; padding:3px 9px; border-radius:999px; border:1px solid var(--line); color:var(--ink-soft); background:var(--surface-2); font-weight:500; }
-.chip.type-c{color:var(--navy-lt); border-color:var(--navy-lt); background:var(--accent-soft);}
-.chip.origin-telecom, .chip.tag-telecom{color:#8a5a00; border-color:#e3c07a; background:#fdf0dc;}
-.chip.origin-ambos, .chip.tag-ambos{color:#5b3fa0; border-color:#c9bce8; background:#efeaf9;}
-.chip.origin-naotelecom, .chip.tag-naotelecom{color:#0d6b4a; border-color:#9fd9c4; background:#e2f7ee;}
-.chip.tag-telecomambos{color:#14548c; border-color:#bcd2e6; background:#e4edf6;}
-.chip.migrated-chip{color:#5b3fa0; border-color:#c9bce8; background:#efeaf9; font-weight:700;}
+.chip.type-c{color:var(--link); border-color:var(--link); background:var(--accent-soft);}
+.chip.origin-telecom, .chip.tag-telecom{color:var(--tag-telecom-fg); border-color:var(--tag-telecom-border); background:var(--tag-telecom-bg);}
+.chip.origin-ambos, .chip.tag-ambos{color:var(--tag-ambos-fg); border-color:var(--tag-ambos-border); background:var(--tag-ambos-bg);}
+.chip.origin-naotelecom, .chip.tag-naotelecom{color:var(--tag-naotelecom-fg); border-color:var(--tag-naotelecom-border); background:var(--tag-naotelecom-bg);}
+.chip.tag-telecomambos{color:var(--link); border-color:var(--line); background:var(--accent-soft);}
+.chip.migrated-chip{color:var(--tag-ambos-fg); border-color:var(--tag-ambos-border); background:var(--tag-ambos-bg); font-weight:700;}
 details.orig{margin:8px 0 0 40px;}
-details.orig summary{font-size:12.5px; color:var(--navy-lt); cursor:pointer; list-style:none; font-weight:500;}
+details.orig summary{font-size:12.5px; color:var(--link); cursor:pointer; list-style:none; font-weight:500;}
 details.orig summary::-webkit-details-marker{display:none;}
 details.orig ol{margin:8px 0 0; padding-left:18px; font-size:13px; color:var(--ink-soft);}
 details.orig ol li{margin-bottom:4px;}
 details.orig .oi-origin{font-size:10.5px; font-weight:700; padding:1px 6px; border-radius:999px; margin-left:6px; white-space:nowrap;}
-details.orig .oi-origin.t{color:#8a5a00; background:#fdf0dc;}
-details.orig .oi-origin.a{color:#5b3fa0; background:#efeaf9;}
-details.orig .oi-origin.nt{color:#0d6b4a; background:#e2f7ee;}
+details.orig .oi-origin.t{color:var(--tag-telecom-fg); background:var(--tag-telecom-bg);}
+details.orig .oi-origin.a{color:var(--tag-ambos-fg); background:var(--tag-ambos-bg);}
+details.orig .oi-origin.nt{color:var(--tag-naotelecom-fg); background:var(--tag-naotelecom-bg);}
 details.orig .reason{margin-top:6px; font-size:12.5px; color:var(--ink-soft); font-style:italic;}
 
 .migrated-heading{ margin:26px 0 12px; font-size:14px; font-weight:700; color:var(--ink-soft); padding-top:14px; border-top:1px dashed var(--line); }
@@ -195,16 +220,16 @@ details.orig .reason{margin-top:6px; font-size:12.5px; color:var(--ink-soft); fo
   display:flex; align-items:center; gap:8px;
 }
 .save-btn:disabled{background:var(--surface-2); color:var(--ink-soft); cursor:default;}
-.save-btn.state-saving{background:var(--ink-soft);}
+.save-btn.state-saving{background:var(--muted-btn);}
 .save-btn.state-saved{background:var(--green);}
 .save-btn.state-error{background:var(--red);}
 .save-flash{
   display:none; align-items:center; gap:10px; margin-top:10px;
-  background:#e2f8ea; color:#0d6b3a; border:1px solid #b6e8ca; border-radius:10px;
+  background:var(--status-ok-bg); color:var(--status-ok-fg); border:1px solid var(--status-ok-border); border-radius:10px;
   padding:10px 14px; font-size:13px; font-weight:600;
 }
 .save-flash.show{display:flex;}
-.save-flash.error{background:#fbe6e6; color:#9c2222; border-color:#f0bcbc;}
+.save-flash.error{background:var(--status-err-bg); color:var(--status-err-fg); border-color:var(--status-err-border);}
 
 .admin-toolbar{ display:flex; gap:18px; align-items:center; flex-wrap:wrap; margin-bottom:18px; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:14px 18px; box-shadow:var(--shadow); }
 .stat{display:flex; flex-direction:column; gap:2px;}
@@ -249,6 +274,21 @@ details.orig .reason{margin-top:6px; font-size:12.5px; color:var(--ink-soft); fo
 .summary-quad h3 .dot{width:10px; height:10px; border-radius:50%; display:inline-block; flex:none;}
 .empty-note{ color:var(--ink-soft); font-size:13px; padding:10px 2px; }
 
+.consol-warning{ background:var(--tag-telecom-bg); border:1px solid var(--tag-telecom-border); color:var(--tag-telecom-fg); border-radius:var(--radius); padding:14px 18px; margin-bottom:18px; font-size:13.5px; line-height:1.5; }
+.consol-warning b{font-weight:700;}
+.consol-summary{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:12px 16px; margin-bottom:16px; box-shadow:var(--shadow); font-size:13.5px; color:var(--ink-soft); }
+.consol-summary b{color:var(--ink);}
+.consol-filter{ display:flex; align-items:center; gap:7px; flex-wrap:wrap; margin:0 0 20px; }
+.consol-filter button{ border:1px solid var(--line); background:var(--surface); color:var(--ink-soft); padding:8px 16px; border-radius:999px; font-size:13px; font-weight:600; cursor:pointer; transition:.12s; }
+.consol-filter button:hover{ border-color:var(--accent); }
+.consol-filter button.active{ background:var(--accent); color:#fff; border-color:var(--accent); }
+.consol-quad{ margin-bottom:24px; }
+.consol-quad h3{ font-size:16px; margin:0 0 10px; display:flex; align-items:center; gap:8px; }
+.consol-quad h3 .dot{width:10px; height:10px; border-radius:50%; display:inline-block; flex:none;}
+.consol-item{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:12px 16px; margin-bottom:8px; box-shadow:var(--shadow); display:flex; align-items:flex-start; gap:10px; flex-wrap:wrap; }
+.consol-item .consol-item-title{flex:1; min-width:200px; font-size:14.5px; font-weight:500;}
+.consol-item .consol-item-stage{display:block; margin-top:4px; font-size:11.5px; color:var(--ink-soft); font-weight:400;}
+
 .edit-item textarea{ width:100%; border:1px solid var(--line); border-radius:8px; padding:9px 11px; font-family:"Ubuntu",sans-serif; font-size:13.5px; resize:vertical; color:var(--ink); background:var(--surface); }
 .edit-item .edit-actions{display:flex; gap:8px; align-items:center; margin-top:9px; flex-wrap:wrap;}
 .edit-item .edit-save{ border:none; border-radius:999px; padding:8px 16px; font-weight:700; font-size:12.5px; cursor:pointer; color:#fff; background:var(--accent); }
@@ -265,7 +305,7 @@ details.orig .reason{margin-top:6px; font-size:12.5px; color:var(--ink-soft); fo
 .export-bar .export-label{ font-size:12.5px; font-weight:700; color:var(--ink-soft); margin-right:2px; }
 .export-bar select.export-format{ border:1px solid var(--line); background:var(--surface); color:var(--ink); border-radius:8px; padding:7px 10px; font-size:12.5px; font-family:inherit; }
 .export-bar button.export-btn{ border:1px solid var(--line); background:var(--surface); color:var(--ink); border-radius:999px; padding:8px 16px; font-size:12.5px; font-weight:700; cursor:pointer; }
-.export-bar button.export-btn:hover{ border-color:var(--navy-lt); color:var(--navy-lt); }
+.export-bar button.export-btn:hover{ border-color:var(--link); color:var(--link); }
 .export-bar button.export-btn.export-total{ background:var(--navy); color:#fff; border-color:var(--navy); }
 .export-bar button.export-btn.export-total:hover{ opacity:.88; color:#fff; }
 .export-bar .export-status{ font-size:12px; color:var(--ink-soft); margin-left:2px; }
@@ -282,15 +322,15 @@ details.orig .reason{margin-top:6px; font-size:12.5px; color:var(--ink-soft); fo
 .add-item-box .add-row{display:flex; gap:8px; align-items:center; margin-top:9px; flex-wrap:wrap;}
 .add-item-box select{ border:1px solid var(--line); border-radius:8px; padding:8px 10px; font-size:13px; color:var(--ink); background:var(--surface); }
 .add-item-btn{ border:none; border-radius:999px; padding:8px 16px; font-weight:700; font-size:12.5px; cursor:pointer; color:#fff; background:var(--green); }
-.remove-item-btn{ border:1px solid #e0a0a0; background:#fbe9e9; color:#9c2222; border-radius:999px; padding:8px 16px; font-weight:600; font-size:12.5px; cursor:pointer; }
+.remove-item-btn{ border:1px solid var(--status-err-border); background:var(--status-err-bg); color:var(--status-err-fg); border-radius:999px; padding:8px 16px; font-weight:600; font-size:12.5px; cursor:pointer; }
 .added-badge{color:var(--green); font-weight:700;}
-.migrated-badge{color:#5b3fa0; font-weight:700;}
+.migrated-badge{color:var(--tag-ambos-fg); font-weight:700;}
 .removed-panel{ background:var(--surface-2); border:1px solid var(--line); border-radius:var(--radius); padding:14px 16px; margin-top:18px; }
 .removed-panel h4{font-size:13px; margin:0 0 10px; color:var(--ink-soft);}
 .removed-row{ display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--line); font-size:13px; }
 .removed-row:last-child{border-bottom:none;}
 .removed-row .rt{flex:1; color:var(--ink-soft);}
-.restore-item-btn{ border:1px solid var(--line); background:var(--surface); color:var(--navy-lt); border-radius:999px; padding:6px 13px; font-size:12px; font-weight:600; cursor:pointer; flex:none; }
+.restore-item-btn{ border:1px solid var(--line); background:var(--surface); color:var(--link); border-radius:999px; padding:6px 13px; font-size:12px; font-weight:600; cursor:pointer; flex:none; }
 .reset-confirm{background:var(--red) !important;}
 
 .menu-grid{ display:grid; gap:14px; margin-top:6px; }
@@ -311,13 +351,13 @@ details.orig .reason{margin-top:6px; font-size:12.5px; color:var(--ink-soft); fo
 .menu-card-desc{font-size:13.5px; color:var(--ink-soft); line-height:1.4;}
 .menu-card-arrow{font-size:18px; color:var(--ink-soft); flex:none; transition:.15s;}
 .menu-card:hover .menu-card-arrow{color:var(--mc-accent); transform:translateX(2px);}
-.voted-badge{ font-size:10.5px; font-weight:700; color:#0d6b3a; background:#e2f8ea; border:1px solid #b6e8ca; border-radius:999px; padding:2px 8px; white-space:nowrap; }
+.voted-badge{ font-size:10.5px; font-weight:700; color:var(--status-ok-fg); background:var(--status-ok-bg); border:1px solid var(--status-ok-border); border-radius:999px; padding:2px 8px; white-space:nowrap; }
 .admin-link-pill{
   display:inline-flex; align-items:center; gap:7px; text-decoration:none;
   color:var(--ink-soft); font-size:13px; font-weight:600; padding:10px 18px;
   border:1px solid var(--line); border-radius:999px; background:var(--surface); transition:.15s;
 }
-.admin-link-pill:hover{ color:var(--navy); border-color:var(--navy-lt); background:var(--surface-2); }
+.admin-link-pill:hover{ color:var(--link); border-color:var(--link); background:var(--surface-2); }
 .index-footnote{ text-align:center; color:var(--ink-soft); font-size:12.5px; margin-top:14px; line-height:1.5; }
 
 .stage-grid{ display:grid; gap:18px; margin-top:6px; grid-template-columns:1fr; }
@@ -334,9 +374,9 @@ details.orig .reason{margin-top:6px; font-size:12.5px; color:var(--ink-soft); fo
 }
 .stage-card-title{font-size:20px; font-weight:700; color:var(--ink); margin-bottom:6px;}
 .stage-card-desc{font-size:14px; color:var(--ink-soft); line-height:1.45;}
-.stage-card-note{margin-top:12px; font-size:12.5px; color:var(--navy-lt); background:var(--accent-soft); border-radius:8px; padding:8px 10px; line-height:1.4;}
+.stage-card-note{margin-top:12px; font-size:12.5px; color:var(--link); background:var(--accent-soft); border-radius:8px; padding:8px 10px; line-height:1.4;}
 .step-back{ display:inline-flex; align-items:center; gap:6px; color:var(--ink-soft); font-size:13.5px; font-weight:600; text-decoration:none; margin-bottom:16px; cursor:pointer; border:none; background:none; padding:0; }
-.step-back:hover{color:var(--navy);}
+.step-back:hover{color:var(--link);}
 #step2-telecom, #step2-naotelecom{display:none;}
 
 .gate{ max-width:420px; margin:60px auto; text-align:center; padding:30px; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); }
@@ -345,10 +385,35 @@ details.orig .reason{margin-top:6px; font-size:12.5px; color:var(--ink-soft); fo
 .gate button{ margin-top:14px; width:100%; border:none; border-radius:999px; padding:12px; font-weight:700; font-size:14.5px; cursor:pointer; color:#fff; background:var(--navy); }
 .gate .err{ color:var(--red); font-size:12.5px; margin-top:10px; min-height:16px; }
 
+.fatal-error-box{
+  background:var(--status-err-bg); border:1px solid var(--status-err-border); color:var(--status-err-fg);
+  border-radius:10px; padding:18px 20px; font-size:14px; line-height:1.5;
+}
+
 footer.pagefoot{ background:var(--surface); border-top:1px solid var(--line); margin-top:30px; padding:22px 20px; }
 .pagefoot-inner{max-width:900px; margin:0 auto; display:flex; align-items:center; gap:14px;}
 .pagefoot-logo{width:32px; height:32px;}
 .pagefoot-text{font-size:12px; color:var(--ink-soft); line-height:1.4;}
+
+.device-id-box{ max-width:900px; margin:14px auto 0; padding-top:14px; border-top:1px solid var(--line); }
+.device-id-label{ font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--ink-soft); margin-bottom:6px; }
+.device-id-value-row{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.device-id-value{ font-family:"Ubuntu Mono",monospace; font-size:12.5px; letter-spacing:.03em; color:var(--ink-soft); background:var(--surface-2); border:1px solid var(--line); border-radius:8px; padding:6px 10px; word-break:break-all; }
+.device-id-copy-btn{ border:1px solid var(--line); border-radius:999px; padding:5px 14px; font-size:12px; font-weight:600; cursor:pointer; color:var(--ink-soft); background:var(--surface); transition:.15s; flex:none; }
+.device-id-copy-btn:hover{ background:var(--surface-2); }
+.device-id-copy-btn.copied{ background:var(--status-ok-bg); color:var(--status-ok-fg); border-color:var(--status-ok-border); }
+.device-id-help{ font-size:11.5px; color:var(--ink-soft); margin-top:6px; line-height:1.4; max-width:560px; }
+
+.device-reset-box{ background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:12px 18px; margin-bottom:18px; box-shadow:var(--shadow); }
+.device-reset-label{ font-size:12.5px; font-weight:700; color:var(--ink-soft); margin-bottom:8px; }
+.device-reset-label .device-reset-sub{ font-weight:400; }
+.device-reset-row{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.device-reset-input{ flex:1; min-width:220px; border:1px solid var(--line); border-radius:8px; padding:8px 11px; font-family:"Ubuntu Mono",monospace; font-size:12.5px; color:var(--ink); background:var(--surface-2); }
+.device-reset-btn{ border:none; border-radius:999px; padding:8px 16px; font-weight:700; font-size:12.5px; cursor:pointer; color:#fff; background:#b23b3b; flex:none; }
+.device-reset-btn:disabled{ background:var(--muted-btn); cursor:default; }
+.device-reset-status{ font-size:12px; font-weight:600; margin-top:8px; min-height:15px; }
+.device-reset-status.ok{ color:var(--status-ok-fg); }
+.device-reset-status.err{ color:var(--status-err-fg); }
 
 @media (max-width:600px){
   .vote-row{flex-direction:column;}
@@ -798,6 +863,14 @@ VOTE_TEMPLATE = HEAD.replace("__PAGE_TITLE__", "Votação SWOT — RV Digital 20
     <div class="rv-logo pagefoot-logo"><img src="data:image/png;base64,__LOGO_B_B64__" alt="RV Digital"></div>
     <div class="pagefoot-text" id="pagefoot-text">Planejamento Estrat&eacute;gico RV Digital 2027</div>
   </div>
+  <div class="device-id-box">
+    <div class="device-id-label">Identificador deste aparelho</div>
+    <div class="device-id-value-row">
+      <code class="device-id-value" id="device-id-value">&hellip;</code>
+      <button class="device-id-copy-btn" id="device-id-copy-btn" type="button">Copiar</button>
+    </div>
+    <div class="device-id-help">Se precisar refazer sua vota&ccedil;&atilde;o do zero neste quadrante depois de trocar de aparelho ou limpar o navegador, informe este c&oacute;digo ao administrador.</div>
+  </div>
 </footer>
 
 <script>
@@ -805,7 +878,7 @@ function fatalConfigError(e){
   var msg = "Erro de configura&ccedil;&atilde;o do site: " + (e && e.message ? e.message : String(e));
   var mount = document.getElementById("items-mount");
   if(mount){
-    mount.innerHTML = '<div style="background:#fbe9e9;border:1px solid #e0a0a0;border-radius:10px;padding:18px 20px;color:#7a1f1f;font-size:14px;line-height:1.5;">'
+    mount.innerHTML = '<div class="fatal-error-box">'
       + '<b>&#9888; ' + msg + '</b><br><br>'
       + 'Isso normalmente significa que o arquivo <code>supabase-config.js</code> n&atilde;o foi preenchido corretamente '
       + '(URL ou chave ausente, incorreta, ou colada com quebra de linha no meio). Avise o administrador do site para revisar o Passo 5 do manual.'
@@ -898,6 +971,41 @@ var myVotes = {};
 var savedVotes = {};
 var votingOpen = true, saving = false;
 var currentFilter = "all";
+
+var deviceIdValueEl = document.getElementById("device-id-value");
+if(deviceIdValueEl) deviceIdValueEl.textContent = myId;
+var deviceIdCopyBtn = document.getElementById("device-id-copy-btn");
+if(deviceIdCopyBtn){
+  deviceIdCopyBtn.addEventListener("click", function(){
+    function showCopied(){
+      deviceIdCopyBtn.textContent = "Copiado!";
+      deviceIdCopyBtn.classList.add("copied");
+      clearTimeout(deviceIdCopyBtn._t);
+      deviceIdCopyBtn._t = setTimeout(function(){
+        deviceIdCopyBtn.textContent = "Copiar";
+        deviceIdCopyBtn.classList.remove("copied");
+      }, 2500);
+    }
+    function fallbackCopy(){
+      try{
+        var ta = document.createElement("textarea");
+        ta.value = myId;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+        showCopied();
+      }catch(e){ /* nada a fazer — ambiente não suporta cópia automática */ }
+    }
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(myId).then(showCopied, fallbackCopy);
+    } else {
+      fallbackCopy();
+    }
+  });
+}
 
 function updateHeroSub(){
   var sub = document.getElementById("hero-sub");
@@ -1193,11 +1301,15 @@ async function computeMigratedItems(){
   // Só se aplica à etapa Não Telecom: migra para lá, de forma DINÂMICA (nunca
   // uma foto congelada), todo item da etapa Telecom + Ambos deste mesmo
   // quadrante que (a) já foi marcado como priorizado pelo admin na etapa
-  // Telecom + Ambos (tabela item_prioritized) e (b) tem tag EXATAMENTE
-  // "Ambos" (não "Telecom", nem "Telecom + Ambos", nem "Não Telecom").
+  // Telecom + Ambos (tabela item_prioritized, stage='telecom') e (b) tem tag
+  // EXATAMENTE "Ambos" (não "Telecom", nem "Telecom + Ambos", nem "Não
+  // Telecom"). O filtro por stage é obrigatório agora que item_prioritized
+  // também recebe linhas da etapa Não Telecom (checkbox "Priorizar" também
+  // liberado lá, só sobre itens nativos) — sem ele, um item_id que por
+  // coincidência exista nas duas etapas poderia "migrar" por engano.
   if(STAGE !== "naotelecom") return [];
   try{
-    var prioRes = await sb.from("item_prioritized").select("item_id").eq("quadrant", QUAD);
+    var prioRes = await sb.from("item_prioritized").select("item_id").eq("stage", "telecom").eq("quadrant", QUAD);
     if(prioRes.error || !prioRes.data || !prioRes.data.length) return [];
     var prioSet = {};
     prioRes.data.forEach(function(r){ prioSet[r.item_id] = true; });
@@ -1458,6 +1570,7 @@ ADMIN_TEMPLATE = HEAD.replace("__PAGE_TITLE__", "Painel Administrativo &mdash; V
       <div class="top-tabs stage-tabs" id="stage-tabs" style="display:none;">
         <button class="tab-btn active" data-stage="telecom">Telecom + Ambos</button>
         <button class="tab-btn" data-stage="naotelecom">N&atilde;o Telecom + Ambos</button>
+        <button class="tab-btn" data-stage="consolidacao">Consolida&ccedil;&atilde;o Final</button>
       </div>
       <div class="top-tabs" id="tabs" style="display:none;">
         <button class="tab-btn active" data-q="forcas">For&ccedil;as</button>
@@ -1482,13 +1595,25 @@ ADMIN_TEMPLATE = HEAD.replace("__PAGE_TITLE__", "Painel Administrativo &mdash; V
   </div>
 
   <div id="dash" style="display:none;">
-    <div class="admin-toolbar">
-      <div class="stat"><b id="admin-voters">0</b><span>diretores votaram</span></div>
-      <div class="stat"><b id="admin-total-votes">0</b><span>votos registrados</span></div>
-      <div class="stat"><b id="admin-avg">&mdash;</b><span>m&eacute;dia geral</span></div>
+    <div class="admin-toolbar" id="admin-toolbar">
+      <div class="stat" id="stat-voters"><b id="admin-voters">0</b><span>diretores votaram</span></div>
+      <div class="stat" id="stat-total-votes"><b id="admin-total-votes">0</b><span>votos registrados</span></div>
+      <div class="stat" id="stat-avg"><b id="admin-avg">&mdash;</b><span>m&eacute;dia geral</span></div>
       <button class="toggle-btn open" id="toggle-voting">Vota&ccedil;&atilde;o aberta</button>
       <button class="toggle-btn" style="background:#b23b3b;" id="reset-votes-btn" title="Apaga todos os votos deste quadrante">Reiniciar vota&ccedil;&atilde;o</button>
-      <button class="toggle-btn" style="background:var(--ink-soft);" id="logout-btn">Sair</button>
+      <button class="toggle-btn" style="background:var(--muted-btn);" id="logout-btn">Sair</button>
+    </div>
+    <div class="admin-toolbar" id="consol-toolbar" style="display:none;">
+      <div class="stat"><span>Consolida&ccedil;&atilde;o Final &mdash; vis&atilde;o somente leitura, junta as duas etapas</span></div>
+      <button class="toggle-btn" style="background:var(--muted-btn);" id="logout-btn-consol">Sair</button>
+    </div>
+    <div class="device-reset-box" id="device-reset-box">
+      <div class="device-reset-label">Zerar voto de um aparelho espec&iacute;fico <span class="device-reset-sub">&mdash; apenas no quadrante/etapa selecionados acima</span></div>
+      <div class="device-reset-row">
+        <input type="text" id="device-reset-input" class="device-reset-input" placeholder="Cole o identificador do aparelho">
+        <button class="device-reset-btn" id="device-reset-btn" type="button">Zerar voto deste aparelho</button>
+      </div>
+      <div class="device-reset-status" id="device-reset-status"></div>
     </div>
     <div class="view-toggle" id="view-toggle">
       <button class="active" data-view="results">Resultados</button>
@@ -1518,7 +1643,7 @@ function fatalConfigError(e){
   var msg = "Erro de configura&ccedil;&atilde;o do site: " + (e && e.message ? e.message : String(e));
   var gate = document.getElementById("login-gate");
   if(gate){
-    gate.innerHTML = '<div style="background:#fbe9e9;border:1px solid #e0a0a0;border-radius:10px;padding:18px 20px;color:#7a1f1f;font-size:14px;line-height:1.5;text-align:left;">'
+    gate.innerHTML = '<div class="fatal-error-box" style="text-align:left;">'
       + '<b>&#9888; ' + msg + '</b><br><br>'
       + 'Verifique o arquivo <code>supabase-config.js</code> (Passo 5 do manual): a URL e a chave anon precisam estar preenchidas, cada uma em uma &uacute;nica linha, sem quebras.'
       + '</div>';
@@ -1542,14 +1667,26 @@ var itemEditsByQuad = { forcas:{}, fraquezas:{}, oportunidades:{}, ameacas:{} };
 var itemAddedByQuad = { forcas:[], fraquezas:[], oportunidades:[], ameacas:[] };
 var itemRemovedByQuad = { forcas:{}, fraquezas:{}, oportunidades:{}, ameacas:{} };
 var rankOverridesByQuad = { forcas:{}, fraquezas:{}, oportunidades:{}, ameacas:{} };
-var prioritizedSet = { forcas:{}, fraquezas:{}, oportunidades:{}, ameacas:{} }; // nunca é escopado por etapa — é sempre relativo à etapa Telecom + Ambos
+// prioritizedSet é escopado pela etapa ATUAL (item_prioritized.stage = currentStage)
+// desde que a tabela ganhou a coluna "stage" — usado para desenhar o checkbox
+// "Priorizar" tanto na etapa Telecom + Ambos quanto na etapa Não Telecom + Ambos.
+var prioritizedSet = { forcas:{}, fraquezas:{}, oportunidades:{}, ameacas:{} };
+// prioritizedTelecomSet é SEMPRE relativo à etapa Telecom + Ambos (stage='telecom'),
+// independente da etapa atual — usado para calcular quais itens com tag "Ambos"
+// migram para a etapa Não Telecom + Ambos (e para a aba Consolidação Final).
+var prioritizedTelecomSet = { forcas:{}, fraquezas:{}, oportunidades:{}, ameacas:{} };
 var adminOrder = "original";
 var adminView = "results";
 var topN = 5;
 var resetArmed = false, resetArmTimer = null;
 var QUAD_LABELS = { forcas:"Forças", fraquezas:"Fraquezas", oportunidades:"Oportunidades", ameacas:"Ameaças" };
 var QUAD_COLORS = { forcas:"var(--green)", fraquezas:"var(--gold)", oportunidades:"var(--navy-lt)", ameacas:"var(--red)" };
-var STAGE_LABELS = { telecom: "Telecom + Ambos", naotelecom: "Não Telecom + Ambos" };
+var STAGE_LABELS = { telecom: "Telecom + Ambos", naotelecom: "Não Telecom + Ambos", consolidacao: "Consolidação Final" };
+var QUAD_ORDER = ["forcas","fraquezas","oportunidades","ameacas"];
+// Estado exclusivo da aba "Consolidação Final" (cross-etapa): preenchido por
+// fetchConsolidationData(), nunca usado fora de renderConsolidationView().
+var consolData = null; // { itemsByQuad: {forcas:[...],...}, anyOpen: true/false, openList: [...] }
+var consolFilter = { "Telecom": true, "Não Telecom": true, "Ambos": true };
 
 function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, function(c){
@@ -1619,20 +1756,42 @@ async function onLoggedIn(){
   document.getElementById("login-gate").style.display = "none";
   document.getElementById("dash").style.display = "block";
   document.getElementById("stage-tabs").style.display = "flex";
-  document.getElementById("tabs").style.display = "flex";
+  applyStageVisibility();
   await refreshAll();
   sb.channel("votes-changes")
-    .on("postgres_changes", { event: "*", schema: "public", table: "votes" }, function(){ refreshAll(); })
+    .on("postgres_changes", { event: "*", schema: "public", table: "votes" }, function(){
+      if(currentStage === "consolidacao") return; // votes não afeta a Consolidação Final
+      refreshAll();
+    })
     .subscribe();
 }
 
+function applyStageVisibility(){
+  // A aba "Consolidação Final" não é uma etapa de votação de verdade: ela
+  // junta as duas etapas, então as linhas de abas de quadrante, de
+  // resultados/resumo/editar e os controles de votação (abrir/fechar,
+  // reiniciar, contadores) não se aplicam e ficam ocultos; o botão "Sair"
+  // continua disponível em qualquer aba.
+  var isConsol = currentStage === "consolidacao";
+  document.getElementById("tabs").style.display = isConsol ? "none" : "flex";
+  document.getElementById("view-toggle").style.display = isConsol ? "none" : "flex";
+  document.getElementById("rank-toggle").style.display = (!isConsol && adminView === "results") ? "flex" : "none";
+  document.getElementById("admin-toolbar").style.display = isConsol ? "none" : "flex";
+  document.getElementById("consol-toolbar").style.display = isConsol ? "flex" : "none";
+  document.getElementById("device-reset-box").style.display = isConsol ? "none" : "block";
+}
 document.getElementById("stage-tabs").addEventListener("click", function(e){
   var b = e.target.closest(".tab-btn");
   if(!b) return;
   document.querySelectorAll("#stage-tabs .tab-btn").forEach(function(x){ x.classList.remove("active"); });
   b.classList.add("active");
   currentStage = b.getAttribute("data-stage");
-  refreshAll();
+  applyStageVisibility();
+  if(currentStage === "consolidacao"){
+    refreshConsolidation();
+  } else {
+    refreshAll();
+  }
 });
 document.getElementById("tabs").addEventListener("click", function(e){
   var b = e.target.closest(".tab-btn");
@@ -1660,6 +1819,14 @@ document.getElementById("view-toggle").addEventListener("click", function(e){
   renderDash();
 });
 document.getElementById("admin-mount").addEventListener("click", async function(e){
+  var consolFilterBtn = e.target.closest(".consol-filter-btn");
+  if(consolFilterBtn){
+    var cat = consolFilterBtn.getAttribute("data-cat");
+    consolFilter[cat] = !consolFilter[cat];
+    renderConsolidationView();
+    return;
+  }
+
   var saveBtn = e.target.closest(".edit-save");
   var resetBtn = e.target.closest(".edit-reset");
   var removeBtn = e.target.closest(".remove-item-btn");
@@ -1820,12 +1987,12 @@ document.getElementById("admin-mount").addEventListener("change", function(e){
     (async function(){
       try{
         if(checked){
-          var r = await sb.from("item_prioritized").insert({ quadrant: currentQuad, item_id: id });
+          var r = await sb.from("item_prioritized").insert({ stage: currentStage, quadrant: currentQuad, item_id: id });
           if(r.error) throw r.error;
           if(!prioritizedSet[currentQuad]) prioritizedSet[currentQuad] = {};
           prioritizedSet[currentQuad][id] = true;
         } else {
-          var r2 = await sb.from("item_prioritized").delete().eq("quadrant", currentQuad).eq("item_id", id);
+          var r2 = await sb.from("item_prioritized").delete().eq("stage", currentStage).eq("quadrant", currentQuad).eq("item_id", id);
           if(r2.error) throw r2.error;
           if(prioritizedSet[currentQuad]) delete prioritizedSet[currentQuad][id];
         }
@@ -1904,6 +2071,43 @@ document.getElementById("reset-votes-btn").addEventListener("click", async funct
   btn.disabled = false;
 });
 
+document.getElementById("device-reset-btn").addEventListener("click", async function(){
+  var btn = this;
+  var input = document.getElementById("device-reset-input");
+  var status = document.getElementById("device-reset-status");
+  var cid = (input.value || "").trim();
+  if(!cid){
+    status.textContent = "Cole o identificador do aparelho antes de continuar.";
+    status.className = "device-reset-status err";
+    return;
+  }
+  var ok = confirm("Remover o voto deste aparelho em " + QUAD_LABELS[currentQuad] + " (" + STAGE_LABELS[currentStage] + ")? Esta ação não pode ser desfeita.");
+  if(!ok) return;
+  btn.disabled = true;
+  btn.textContent = "Removendo…";
+  status.textContent = "";
+  status.className = "device-reset-status";
+  try{
+    var res = await sb.from("votes").delete().eq("stage", currentStage).eq("quadrant", currentQuad).eq("client_id", cid).select();
+    if(res.error) throw res.error;
+    if(res.data && res.data.length > 0){
+      status.textContent = "Voto removido — o aparelho pode responder este quadrante novamente.";
+      status.className = "device-reset-status ok";
+      input.value = "";
+      await refreshAll();
+    } else {
+      status.textContent = "Nenhum voto encontrado com esse identificador neste quadrante/etapa.";
+      status.className = "device-reset-status err";
+    }
+  }catch(e){
+    console.warn("device vote reset failed", e);
+    status.textContent = "Erro ao remover o voto (" + (e && e.message ? e.message : "erro desconhecido") + ").";
+    status.className = "device-reset-status err";
+  }
+  btn.disabled = false;
+  btn.textContent = "Zerar voto deste aparelho";
+});
+
 async function refreshAll(){
   try{
     var votesRes = await sb.from("votes").select("quadrant,scores").eq("stage", currentStage);
@@ -1928,11 +2132,14 @@ async function refreshAll(){
       (rankRes.data || []).forEach(function(r){ if(rankOverridesByQuad[r.quadrant]) rankOverridesByQuad[r.quadrant][r.item_id] = r.position; });
     }
 
-    // item_prioritized nunca é escopado por etapa: é sempre relativo à etapa
-    // Telecom + Ambos (ver schema.sql). É usado aqui tanto para desenhar o
-    // checkbox (etapa Telecom) quanto para calcular a migração (etapa Não
-    // Telecom), então é sempre buscado, independentemente da etapa atual.
-    var prioRes = await sb.from("item_prioritized").select("quadrant,item_id");
+    // item_prioritized agora é escopado por etapa (ver schema.sql). O
+    // checkbox "Priorizar" desenhado na etapa atual usa sempre a priorização
+    // DAQUELA etapa (prioritizedSet); a migração de itens "Ambos" para a
+    // etapa Não Telecom + Ambos é sempre relativa à priorização feita na
+    // etapa Telecom + Ambos (prioritizedTelecomSet), buscada separadamente
+    // sempre que a etapa atual é "naotelecom" (mesmo que currentStage !==
+    // "telecom", pois é a priorização DA OUTRA etapa que importa aqui).
+    var prioRes = await sb.from("item_prioritized").select("quadrant,item_id").eq("stage", currentStage);
     prioritizedSet = { forcas:{}, fraquezas:{}, oportunidades:{}, ameacas:{} };
     if(!prioRes.error){
       (prioRes.data || []).forEach(function(r){ if(prioritizedSet[r.quadrant]) prioritizedSet[r.quadrant][r.item_id] = true; });
@@ -1941,6 +2148,11 @@ async function refreshAll(){
     var telecomState = null;
     if(currentStage === "naotelecom"){
       telecomState = await fetchStageState("telecom");
+      var prioTelRes = await sb.from("item_prioritized").select("quadrant,item_id").eq("stage", "telecom");
+      prioritizedTelecomSet = { forcas:{}, fraquezas:{}, oportunidades:{}, ameacas:{} };
+      if(!prioTelRes.error){
+        (prioTelRes.data || []).forEach(function(r){ if(prioritizedTelecomSet[r.quadrant]) prioritizedTelecomSet[r.quadrant][r.item_id] = true; });
+      }
     }
 
     var next = {};
@@ -1950,7 +2162,7 @@ async function refreshAll(){
       if(currentStage === "naotelecom" && telecomState){
         var telecomNative = applyChanges(BASE_ALL_ITEMS.telecom[q], telecomState.editsByQuad[q], telecomState.addedByQuad[q], telecomState.removedByQuad[q]);
         var survivors = telecomNative.filter(function(it){
-          return (prioritizedSet[q] && prioritizedSet[q][it.id]) && tagLabelFromOrigins(it.origins) === "Ambos";
+          return (prioritizedTelecomSet[q] && prioritizedTelecomSet[q][it.id]) && tagLabelFromOrigins(it.origins) === "Ambos";
         });
         var migBase = survivors.map(function(it){
           var c = JSON.parse(JSON.stringify(it));
@@ -2070,6 +2282,130 @@ function renderDash(){
   renderResultsView();
 }
 
+// ============================================================================
+// Aba "Consolidação Final" — junta as duas etapas (não é, ela mesma, uma
+// etapa de votação). Mostra os itens priorizados dos dois lados, agrupados
+// por quadrante e categorizados em Telecom / Não Telecom / Ambos.
+// ============================================================================
+async function refreshConsolidation(){
+  try{
+    consolData = await fetchConsolidationData();
+  }catch(e){
+    console.warn("consolidation refresh failed", e);
+    consolData = null;
+  }
+  renderConsolidationView();
+}
+
+async function fetchConsolidationData(){
+  // Banner de aviso: olha as 8 combinações (stage, quadrant) de voting_config,
+  // sem hardcodar nada — se qualquer uma ainda estiver aberta, mostra aviso.
+  var openList = [];
+  var cfgRes = await sb.from("voting_config").select("stage,quadrant,is_open");
+  if(!cfgRes.error){
+    (cfgRes.data || []).forEach(function(r){ if(r.is_open) openList.push({ stage: r.stage, quadrant: r.quadrant }); });
+  }
+
+  var telecomState = await fetchStageState("telecom");
+  var naoState = await fetchStageState("naotelecom");
+
+  // item_prioritized dos dois lados, cada um já escopado pela sua própria
+  // etapa (ver schema.sql / comentário em refreshAll).
+  var prioByStageQuad = {
+    telecom: { forcas:{}, fraquezas:{}, oportunidades:{}, ameacas:{} },
+    naotelecom: { forcas:{}, fraquezas:{}, oportunidades:{}, ameacas:{} }
+  };
+  var prioRes = await sb.from("item_prioritized").select("stage,quadrant,item_id");
+  if(!prioRes.error){
+    (prioRes.data || []).forEach(function(r){
+      if(prioByStageQuad[r.stage] && prioByStageQuad[r.stage][r.quadrant]) prioByStageQuad[r.stage][r.quadrant][r.item_id] = true;
+    });
+  }
+
+  var itemsByQuad = {};
+  QUAD_ORDER.forEach(function(q){
+    var telecomItems = applyChanges(BASE_ALL_ITEMS.telecom[q], telecomState.editsByQuad[q], telecomState.addedByQuad[q], telecomState.removedByQuad[q]);
+    var naoItems = applyChanges(BASE_ALL_ITEMS.naotelecom[q], naoState.editsByQuad[q], naoState.addedByQuad[q], naoState.removedByQuad[q]);
+    var cats = [];
+
+    telecomItems.forEach(function(it){
+      if(!prioByStageQuad.telecom[q][it.id]) return;
+      var tag = tagLabelFromOrigins(it.origins);
+      // "Telecom" (tag exatamente "Telecom") e "Ambos" (tag exatamente
+      // "Ambos" — os mesmos itens que já migram para a votação Não Telecom)
+      // vêm sempre da priorização feita na etapa Telecom + Ambos. Itens com
+      // tag "Telecom + Ambos" não entram em nenhuma das categorias.
+      if(tag === "Telecom" || tag === "Ambos"){
+        cats.push({ id: it.id, title: it.title, category: tag, stage: "telecom" });
+      }
+    });
+    // naoItems vem só de BASE_ALL_ITEMS.naotelecom + item_added/item_edits/
+    // item_removed da própria etapa Não Telecom — nunca inclui os itens
+    // migrados (que são reconstruídos à parte, com prefixo "mig_", só na
+    // tela de Resultados daquela etapa) — por isso já é "nativo" por
+    // construção, sem precisar checar nenhuma flag "migrated" aqui.
+    naoItems.forEach(function(it){
+      if(!prioByStageQuad.naotelecom[q][it.id]) return;
+      var tag = tagLabelFromOrigins(it.origins);
+      if(tag === "Não Telecom"){
+        cats.push({ id: it.id, title: it.title, category: "Não Telecom", stage: "naotelecom" });
+      }
+    });
+    itemsByQuad[q] = cats;
+  });
+
+  return { itemsByQuad: itemsByQuad, openList: openList };
+}
+
+function renderConsolidationView(){
+  var mount = document.getElementById("admin-mount");
+  if(!consolData){
+    mount.innerHTML = '<div class="empty-note">Carregando&hellip;</div>';
+    return;
+  }
+  var html = "";
+
+  if(consolData.openList.length){
+    var byStage = {};
+    consolData.openList.forEach(function(o){
+      if(!byStage[o.stage]) byStage[o.stage] = [];
+      byStage[o.stage].push(QUAD_LABELS[o.quadrant]);
+    });
+    var parts = Object.keys(byStage).map(function(st){ return STAGE_LABELS[st] + ": " + byStage[st].join(", "); });
+    html += '<div class="consol-warning">&#9888;&nbsp; <b>Aten&ccedil;&atilde;o:</b> ainda h&aacute; vota&ccedil;&atilde;o em aberto em ' + escapeHtml(parts.join(" · ")) + ' &mdash; os n&uacute;meros abaixo podem mudar.</div>';
+  }
+
+  html += '<div class="consol-filter">' + ["Telecom","Não Telecom","Ambos"].map(function(cat){
+    return '<button class="consol-filter-btn' + (consolFilter[cat] ? " active" : "") + '" data-cat="' + escapeHtml(cat) + '">' + escapeHtml(cat) + '</button>';
+  }).join("") + '</div>';
+
+  var perQuadCount = {}, totalCount = 0;
+  QUAD_ORDER.forEach(function(q){
+    var n = (consolData.itemsByQuad[q] || []).filter(function(it){ return consolFilter[it.category]; }).length;
+    perQuadCount[q] = n; totalCount += n;
+  });
+  html += '<div class="consol-summary"><b>' + totalCount + '</b> ' + (totalCount===1?"item":"itens") + ' no SWOT final &mdash; '
+    + QUAD_ORDER.map(function(q){ return QUAD_LABELS[q] + ': <b>' + perQuadCount[q] + '</b>'; }).join(' &middot; ')
+    + '</div>';
+
+  QUAD_ORDER.forEach(function(q){
+    var list = (consolData.itemsByQuad[q] || []).filter(function(it){ return consolFilter[it.category]; });
+    html += '<div class="consol-quad"><h3><span class="dot" style="background:' + QUAD_COLORS[q] + '"></span>' + QUAD_LABELS[q] + '</h3>';
+    if(!list.length){
+      html += '<div class="empty-note">Nenhum item nesta categoria.</div>';
+    } else {
+      list.forEach(function(it){
+        html += '<div class="consol-item"><div class="consol-item-title">' + escapeHtml(it.title)
+          + '<span class="consol-item-stage">Priorizado em ' + escapeHtml(STAGE_LABELS[it.stage]) + '</span></div>'
+          + tagChipHtml(it.category) + '</div>';
+      });
+    }
+    html += '</div>';
+  });
+
+  mount.innerHTML = html;
+}
+
 function renderResultsView(){
   var mount = document.getElementById("admin-mount");
   var items = (ALL_ITEMS[currentQuad] || []).slice();
@@ -2094,20 +2430,24 @@ function renderResultsView(){
   if(currentStage === "telecom"){
     var prioCount = items.filter(function(it){ return prioritizedSet[currentQuad] && prioritizedSet[currentQuad][it.id]; }).length;
     var ambosPrioCount = items.filter(function(it){ return prioritizedSet[currentQuad] && prioritizedSet[currentQuad][it.id] && tagLabelFromOrigins(it.origins) === "Ambos"; }).length;
-    html += '<div class="prio-summary"><b>'+prioCount+'</b> item'+(prioCount===1?"":"s")+' priorizado'+(prioCount===1?"":"s")+' neste quadrante'
+    html += '<div class="prio-summary"><b>'+prioCount+'</b> '+(prioCount===1?"item":"itens")+' priorizado'+(prioCount===1?"":"s")+' neste quadrante'
       + ' (<b>'+ambosPrioCount+'</b> com tag Ambos &mdash; ser'+(ambosPrioCount===1?"á":"ão")+' migrado'+(ambosPrioCount===1?"":"s")+' para N&atilde;o Telecom + Ambos).</div>';
   }
   html += '<div class="top5-wrap">'+renderTopNTable(currentQuad, true)+'</div>';
   items.forEach(function(it){
     var a = agg[it.id];
     var avg = a.total ? (a.sum/a.total) : null;
-    var avgColor = avg===null ? "var(--ink-soft)" : (avg>=4 ? "var(--green)" : (avg>=2.2 ? "var(--gold)" : "var(--red)"));
+    var avgColor = avg===null ? "var(--muted-btn)" : (avg>=4 ? "var(--green)" : (avg>=2.2 ? "var(--gold)" : "var(--red)"));
     var pct5 = a.total ? (a.c5/a.total*100) : 0;
     var pct3 = a.total ? (a.c3/a.total*100) : 0;
     var pct1 = a.total ? (a.c1/a.total*100) : 0;
     var tag = tagLabelFromOrigins(it.origins);
     var prioCtrl = "";
-    if(currentStage === "telecom"){
+    if(!it.migrated){
+      // O checkbox "Priorizar" existe nas duas etapas, mas nunca sobre um
+      // item migrado (já foi priorizado na etapa Telecom + Ambos para
+      // chegar aqui — reabrir a priorização nele na etapa Não Telecom seria
+      // confuso e não tem efeito algum, já que a migração é por construção).
       var isChecked = !!(prioritizedSet[currentQuad] && prioritizedSet[currentQuad][it.id]);
       prioCtrl = '<label class="prioritize-ctrl"><input type="checkbox" class="prioritize-checkbox" data-id="'+it.id+'" '+(isChecked?'checked':'')+'> Priorizar</label>';
     }
@@ -2432,6 +2772,10 @@ document.getElementById("login-btn").addEventListener("click", async function(){
   }
 });
 document.getElementById("logout-btn").addEventListener("click", async function(){
+  await sb.auth.signOut();
+  location.reload();
+});
+document.getElementById("logout-btn-consol").addEventListener("click", async function(){
   await sb.auth.signOut();
   location.reload();
 });
