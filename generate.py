@@ -173,6 +173,8 @@ main{max-width:900px; margin:0 auto; padding:26px 20px 90px;}
 .item-title{font-size:16.5px; font-weight:500; flex:1;}
 .item-meta{display:flex; gap:6px; flex-wrap:wrap; margin:8px 0 0 40px;}
 .item-desc{margin:10px 0 0 40px; font-size:13.5px; color:var(--ink-soft); line-height:1.55;}
+.item-objetivo{margin:8px 0 0 40px; font-size:12.5px; color:var(--link); line-height:1.5;}
+.item-objetivo b{color:var(--ink-soft);}
 .chip{ font-size:12px; padding:3px 9px; border-radius:999px; border:1px solid var(--line); color:var(--ink-soft); background:var(--surface-2); font-weight:500; }
 .chip.type-c{color:var(--link); border-color:var(--link); background:var(--accent-soft);}
 .chip.origin-telecom, .chip.tag-telecom{color:var(--tag-telecom-fg); border-color:var(--tag-telecom-border); background:var(--tag-telecom-bg);}
@@ -517,8 +519,12 @@ def build_projeto_items():
     conv_rows_sorted = sorted(conv_rows, key=lambda g: g["Convergência"])
     for i, g in enumerate(conv_rows_sorted, start=1):
         tagobj = g.get("Objetivo / Tag recomendados") or ""
-        m = re.search(r'Tag:\s*(.+)$', tagobj)
-        tag = m.group(1).strip() if m else "Ambos"
+        # Formato da coluna: "<texto do objetivo>  —  Tag: <Telecom|Não Telecom|Ambos>"
+        parts = re.split(r'\s*[—-]+\s*Tag:\s*', tagobj, maxsplit=1)
+        if len(parts) == 2:
+            objetivo_txt, tag = parts[0].strip(), parts[1].strip()
+        else:
+            objetivo_txt, tag = tagobj.strip(), "Ambos"
         members_raw = (g.get("Projetos originais (diretoria)") or "").split("\n")
         originals = []
         for line in members_raw:
@@ -538,6 +544,7 @@ def build_projeto_items():
             "title": g["Convergência"],
             "tag": tag,
             "origins": [tag],
+            "objetivo": objetivo_txt,
             "divisions": divisions,
             "n": len(originals),
             "originals": originals,
@@ -559,6 +566,7 @@ def build_projeto_items():
             "title": r["Nome do projeto"],
             "tag": tag,
             "origins": [tag],
+            "objetivo": (r.get("Objetivo") or "").strip(),
             "divisions": [division] if division else [],
             "n": 1,
             "originals": None,
@@ -1227,8 +1235,9 @@ function renderItem(it, idx){
     ? '<span class="chip type-c">Convergência · '+it.n+' propostas</span>'
     : '<span class="chip">Proposta isolada</span>';
   var divisionChips = (it.divisions || []).map(function(a){ return '<span class="chip">'+escapeHtml(a)+'</span>'; }).join("");
+  var tagPrefix = (TRACK === "projetos") ? "Tag: " : "";
   var originChips = (it.origins || []).map(function(o){
-    return '<span class="chip origin-'+origSlug(o)+'">'+escapeHtml(o)+'</span>';
+    return '<span class="chip origin-'+origSlug(o)+'">'+tagPrefix+escapeHtml(o)+'</span>';
   }).join("");
   var migChip = it.migrated ? '<span class="chip migrated-chip">Ambos · já priorizada em Telecom + Ambos</span>' : "";
   var details = "";
@@ -1237,7 +1246,7 @@ function renderItem(it, idx){
       return "<li>"+escapeHtml(o.text)+' <span class="oi-origin '+origClass(o.origin)+'">'+escapeHtml(o.origin)+'</span></li>';
     }).join("");
     var unifLabel = (TRACK === "projetos")
-      ? ('Ver as '+it.originals.length+' propostas originais e o motivo da converg&ecirc;ncia')
+      ? ('Ver os '+it.originals.length+' projetos originais unificados e o motivo da converg&ecirc;ncia')
       : ('Ver as '+it.originals.length+' propostas originais e o motivo da unifica&ccedil;&atilde;o');
     details = '<details class="orig"><summary>'+unifLabel+'</summary>'
       + '<ol>'+origLis+'</ol>'
@@ -1247,12 +1256,15 @@ function renderItem(it, idx){
   // Projetos 2027: a descrição (Comentário original ou descrição sugerida de
   // consolidação) aparece direto no card, fora do expander — são propostas
   // substantivas e quem vota precisa desse contexto para julgá-las; o SWOT
-  // não tem esse campo (seus itens são só o título curto).
+  // não tem esse campo (seus itens são só o título curto). O Objetivo 2027
+  // ao qual o projeto está atrelado também aparece direto no card.
   var descBlock = it.description ? '<p class="item-desc">'+escapeHtml(it.description)+'</p>' : "";
+  var objBlock = it.objetivo ? '<p class="item-objetivo"><b>Objetivo 2027:</b> '+escapeHtml(it.objetivo)+'</p>' : "";
   return '<div class="item'+(it.migrated?' is-migrated':'')+'" id="item-'+it.id+'" data-id="'+it.id+'">'
     + '<div class="item-top"><div class="item-idx mono">#'+idx+'</div><div class="item-title">'+escapeHtml(it.title)+'</div></div>'
     + '<div class="item-meta">'+migChip+typeChip+originChips+divisionChips+'</div>'
     + descBlock
+    + objBlock
     + details
     + '<div class="vote-row">'
     +   voteBtn(it.id,5,"Concordo totalmente")
@@ -1965,6 +1977,11 @@ function tagSlug(tag){
 }
 function tagChipHtml(tag){
   return '<span class="chip tag-' + tagSlug(tag) + '">' + escapeHtml(tag) + '</span>';
+}
+function origClass(o){
+  if(o === "Telecom") return "t";
+  if(o === "Não Telecom") return "nt";
+  return "a";
 }
 
 function applyChanges(baseItems, editMap, addedList, removedSet){
@@ -2736,10 +2753,28 @@ function renderResultsView(){
       prioCtrl = '<label class="prioritize-ctrl"><input type="checkbox" class="prioritize-checkbox" data-id="'+it.id+'" '+(isChecked?'checked':'')+'> Priorizar</label>';
     }
     var migBadge = (currentStage === "naotelecom" && it.migrated) ? '<span class="chip migrated-chip">Migrada de Telecom + Ambos</span>' : "";
+    // Projetos 2027: a descrição sugerida, o Objetivo 2027 vinculado e (para
+    // itens de convergência) a lista dos projetos originais unificados e o
+    // motivo aparecem aqui também, para o admin ter o mesmo contexto de quem
+    // votou ao decidir priorizar. SWOT não tem esses campos, então esse
+    // bloco fica vazio para ele.
+    var descBlockA = it.description ? '<p class="item-desc">'+escapeHtml(it.description)+'</p>' : "";
+    var objBlockA = it.objetivo ? '<p class="item-objetivo"><b>Objetivo 2027:</b> '+escapeHtml(it.objetivo)+'</p>' : "";
+    var detailsA = "";
+    if(it.type === "convergencia" && it.originals){
+      var origLisA = it.originals.map(function(o){
+        return "<li>"+escapeHtml(o.text)+' <span class="oi-origin '+origClass(o.origin)+'">'+escapeHtml(o.origin)+'</span></li>';
+      }).join("");
+      detailsA = '<details class="orig"><summary>Ver os '+it.originals.length+' projetos originais unificados e o motivo da converg&ecirc;ncia</summary>'
+        + '<ol>'+origLisA+'</ol>'
+        + '<div class="reason">'+escapeHtml(it.reason)+'</div>'
+        + '</details>';
+    }
     html += '<div class="admin-item'+(it.migrated?' is-migrated':'')+'">'
       + '<div class="admin-item-top"><div class="item-title" style="flex:1">'+escapeHtml(it.title)+' '+tagChipHtml(tag)+' '+migBadge+'</div>'
       + prioCtrl
       + '<span class="avg-badge" style="background:'+avgColor+'">'+(avg===null?"sem votos":avg.toFixed(1))+'</span></div>'
+      + descBlockA + objBlockA + detailsA
       + '<div class="bars"><div class="bar-5" style="width:'+pct5+'%"></div><div class="bar-3" style="width:'+pct3+'%"></div><div class="bar-1" style="width:'+pct1+'%"></div></div>'
       + '<div class="bar-legend"><span><b>'+a.c5+'</b> concordam totalmente</span><span><b>'+a.c3+'</b> concordam parcialmente</span><span><b>'+a.c1+'</b> discordam</span><span><b>'+a.total+'</b> votos</span></div>'
       + '</div>';
@@ -2799,12 +2834,18 @@ function renderEditView(){
   items.forEach(function(it, i){
     var isEdited = !!(itemEditsByQuad[currentQuad] && itemEditsByQuad[currentQuad][it.id] !== undefined);
     var isAdded = it.id.indexOf("add_") === 0;
+    var ctxLine = (it.objetivo || it.description)
+      ? '<div style="font-size:11.5px; color:var(--link); margin-bottom:6px;">'
+        + (it.objetivo ? '<b>Objetivo 2027:</b> '+escapeHtml(it.objetivo) : '')
+        + '</div>'
+      : '';
     html += '<div class="admin-item edit-item'+(it.migrated?' is-migrated':'')+'" data-id="'+it.id+'">'
       + '<div style="font-size:11.5px; color:var(--ink-soft); margin-bottom:6px;">#'+(i+1)
       +   (isAdded ? ' &middot; <span class="added-badge">proposta adicionada</span>' : '')
       +   (it.migrated ? ' &middot; <span class="migrated-badge">migrada de Telecom + Ambos</span>' : '')
       +   (isEdited ? ' &middot; <span style="color:var(--gold); font-weight:700;">texto editado</span>' : '')
       + '</div>'
+      + ctxLine
       + '<textarea class="edit-title-input" rows="2">'+escapeHtml(it.title)+'</textarea>'
       + '<div class="edit-actions">'
       +   '<button class="edit-save">Salvar</button>'
