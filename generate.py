@@ -1,4 +1,6 @@
 import json
+import re
+import openpyxl
 
 with open("/home/claude/votacao_unificada/logo_a.b64") as f:
     LOGO_A_B64 = f.read().strip()  # white-circle badge -> use on BLUE backgrounds
@@ -170,6 +172,7 @@ main{max-width:900px; margin:0 auto; padding:26px 20px 90px;}
 .item-idx{ font-family:"Ubuntu Mono",monospace; font-size:12.5px; color:var(--ink-soft); flex:none; padding-top:2px; width:30px; }
 .item-title{font-size:16.5px; font-weight:500; flex:1;}
 .item-meta{display:flex; gap:6px; flex-wrap:wrap; margin:8px 0 0 40px;}
+.item-desc{margin:10px 0 0 40px; font-size:13.5px; color:var(--ink-soft); line-height:1.55;}
 .chip{ font-size:12px; padding:3px 9px; border-radius:999px; border:1px solid var(--line); color:var(--ink-soft); background:var(--surface-2); font-weight:500; }
 .chip.type-c{color:var(--link); border-color:var(--link); background:var(--accent-soft);}
 .chip.origin-telecom, .chip.tag-telecom{color:var(--tag-telecom-fg); border-color:var(--tag-telecom-border); background:var(--tag-telecom-bg);}
@@ -469,6 +472,103 @@ def build_items(convergences, solos, qkey):
             "divisions": [s[1]], "origins": [s[2]], "n": 1, "originals": None, "reason": None,
         })
     return items
+
+# ============================================================================
+# PROJETOS 2027 — lidos ao vivo de /home/claude/projetos_2027/
+# Projetos_2027_Consolidado.xlsx (fonte somente-leitura desta sessão) com
+# openpyxl, no momento da geração — nunca transcritos à mão, para não
+# arriscar erro de digitação. Monta a lista plana (sem subdivisão de
+# quadrante) dos 20 projetos votáveis de 2027: 14 propostas isoladas (linhas
+# da aba "Projetos 2027" sem "Convergência" preenchida) + 6 propostas
+# consolidadas (uma por grupo da aba "Convergências", usando a descrição
+# sugerida, a tag recomendada e a lista de membros originais como
+# "originals"/"reason", no mesmo formato dos itens "convergencia" do SWOT).
+# ============================================================================
+PROJETOS_XLSX_PATH = "/home/claude/projetos_2027/Projetos_2027_Consolidado.xlsx"
+
+def _clean_projeto_comment(s):
+    if not s:
+        return ""
+    s = str(s).strip()
+    # Remove o prefixo "DD/MM/AAAA HH:MM - Autor" quando presente (carimbo de
+    # edição do comentário, irrelevante para quem está votando).
+    s = re.sub(r'^\d{2}/\d{2}/\d{4}\s+\d{2}:\d{2}\s*-\s*[^\n]*\n', '', s)
+    return s.strip().replace("\xa0", " ")
+
+def _short_division(d):
+    if not d:
+        return d
+    return str(d).replace("Diretoria de ", "").strip()
+
+def build_projeto_items():
+    wb = openpyxl.load_workbook(PROJETOS_XLSX_PATH, data_only=True)
+
+    ws_proj = wb["Projetos 2027"]
+    headers_proj = [c.value for c in ws_proj[1]]
+    proj_rows = [dict(zip(headers_proj, r)) for r in ws_proj.iter_rows(min_row=2, values_only=True) if r[2]]
+
+    ws_conv = wb["Convergências"]
+    headers_conv = [c.value for c in ws_conv[3]]
+    conv_rows = [dict(zip(headers_conv, r)) for r in ws_conv.iter_rows(min_row=4, values_only=True) if r and r[0]]
+
+    items = []
+
+    # ---- 6 propostas consolidadas (type "convergencia") --------------------
+    conv_rows_sorted = sorted(conv_rows, key=lambda g: g["Convergência"])
+    for i, g in enumerate(conv_rows_sorted, start=1):
+        tagobj = g.get("Objetivo / Tag recomendados") or ""
+        m = re.search(r'Tag:\s*(.+)$', tagobj)
+        tag = m.group(1).strip() if m else "Ambos"
+        members_raw = (g.get("Projetos originais (diretoria)") or "").split("\n")
+        originals = []
+        for line in members_raw:
+            line = line.strip()
+            if not line:
+                continue
+            mm = re.match(r'^(.*)\(([^()]+)\)\s*$', line)
+            if mm:
+                text, division = mm.group(1).strip(), mm.group(2).strip()
+            else:
+                text, division = line, ""
+            originals.append({"text": text, "division": division, "origin": tag})
+        divisions = sorted(set(o["division"] for o in originals if o["division"]))
+        items.append({
+            "id": "proj_c" + str(i),
+            "type": "convergencia",
+            "title": g["Convergência"],
+            "tag": tag,
+            "origins": [tag],
+            "divisions": divisions,
+            "n": len(originals),
+            "originals": originals,
+            "reason": (g.get("Racional da convergência") or "").strip(),
+            "description": (g.get("Descrição sugerida (projeto consolidado)") or "").strip(),
+        })
+
+    # ---- 14 propostas isoladas (type "isolada") -----------------------------
+    standalone_sorted = sorted(
+        [r for r in proj_rows if not r.get("Convergência")],
+        key=lambda r: r["Nome do projeto"]
+    )
+    for i, r in enumerate(standalone_sorted, start=1):
+        tag = (r.get("Tags") or "Ambos").strip()
+        division = _short_division(r.get("Divisão"))
+        items.append({
+            "id": "proj_s" + str(i),
+            "type": "isolada",
+            "title": r["Nome do projeto"],
+            "tag": tag,
+            "origins": [tag],
+            "divisions": [division] if division else [],
+            "n": 1,
+            "originals": None,
+            "reason": None,
+            "description": _clean_projeto_comment(r.get("Comentário")),
+        })
+
+    return items
+
+PROJETOS_ITEMS = build_projeto_items()
 
 # ============================================================================
 # Data: Telecom + Ambos SWOT (copiado verbatim de votacao_supabase/generate.py)
@@ -791,8 +891,21 @@ SOLOS_NTELECOM = {
 # ITEMS: todos os itens-base das duas etapas, por quadrante.
 # ============================================================================
 ITEMS = {
-  "telecom": {q["key"]: build_items(CONVERGENCES_TELECOM, SOLOS_TELECOM, q["key"]) for q in QUADRANTS},
-  "naotelecom": {q["key"]: build_items(CONVERGENCES_NTELECOM, SOLOS_NTELECOM, q["key"]) for q in QUADRANTS},
+  "swot": {
+    "telecom": {q["key"]: build_items(CONVERGENCES_TELECOM, SOLOS_TELECOM, q["key"]) for q in QUADRANTS},
+    "naotelecom": {q["key"]: build_items(CONVERGENCES_NTELECOM, SOLOS_NTELECOM, q["key"]) for q in QUADRANTS},
+  },
+  # Projetos 2027: ballot "flat", sem subdivisão de quadrante — modelado como
+  # um quadrante fixo "geral" (ver nota no topo deste arquivo / no pedido
+  # original) para reaproveitar sem alteração todo o código já existente que
+  # é parametrizado por (stage, quadrant). Etapa Telecom + Ambos = projetos
+  # com tag "Telecom" ou "Ambos"; etapa Não Telecom + Ambos = só os projetos
+  # NATIVOS com tag "Não Telecom" (a migração dinâmica dos "Ambos" já
+  # priorizados é feita em runtime por voto.html/admin.html, igual ao SWOT).
+  "projetos": {
+    "telecom": {"geral": [it for it in PROJETOS_ITEMS if it["tag"] in ("Telecom", "Ambos")]},
+    "naotelecom": {"geral": [it for it in PROJETOS_ITEMS if it["tag"] == "Não Telecom"]},
+  },
 }
 
 # ============================================================================
@@ -900,22 +1013,29 @@ function showFatalParamError(msg){
 
 try{
 
-var QUADS_META = __QUADS_META_JSON__;      // { forcas:{label,accent,accent_soft}, ... }
-var ITEMS_ALL = __ITEMS_ALL_JSON__;        // { telecom:{forcas:[...],...}, naotelecom:{...} }
+var QUADS_META = __QUADS_META_JSON__;      // { forcas:{label,accent,accent_soft}, ..., geral:{...} }
+var ITEMS_ALL = __ITEMS_ALL_JSON__;        // { swot:{telecom:{forcas:[...],...},naotelecom:{...}}, projetos:{telecom:{geral:[...]},naotelecom:{geral:[...]}} }
 var STAGE_LABELS = { telecom: "Telecom + Ambos", naotelecom: "Não Telecom + Ambos" };
+var TRACK_LABELS = { swot: "SWOT", projetos: "Projetos 2027" };
 
 var params = new URLSearchParams(location.search);
+var TRACK = params.get("track") || "swot"; // sem ?track= na URL => trilha SWOT (compatibilidade com links já publicados)
 var STAGE = params.get("stage");
-var QUAD = params.get("quad");
+// QUAD: na trilha Projetos 2027 não há subdivisão de quadrante — se vier
+// ausente da URL, assume "geral" por padrão (ver nota em generate.py); se
+// vier explicitamente "geral" também funciona normalmente.
+var QUAD = params.get("quad") || (TRACK === "projetos" ? "geral" : null);
+var validTrack = (TRACK === "swot" || TRACK === "projetos");
 var validStage = (STAGE === "telecom" || STAGE === "naotelecom");
-var validQuad = QUAD && Object.prototype.hasOwnProperty.call(QUADS_META, QUAD);
+var validQuad = QUAD && Object.prototype.hasOwnProperty.call(QUADS_META, QUAD) && Object.prototype.hasOwnProperty.call(ITEMS_ALL[validTrack ? TRACK : "swot"][validStage ? STAGE : "telecom"], QUAD);
 
-if(!validStage || !validQuad){
+if(!validTrack || !validStage || !validQuad){
   var problems = [];
+  if(!validTrack) problems.push('a trilha ("track") precisa ser "swot" ou "projetos"');
   if(!validStage) problems.push('a etapa ("stage") precisa ser "telecom" ou "naotelecom"');
-  if(!validQuad) problems.push('o quadrante ("quad") precisa ser um dos 4 quadrantes do SWOT');
+  if(!validQuad) problems.push('o quadrante ("quad") precisa ser válido para a trilha/etapa escolhida');
   showFatalParamError("O link usado não tem os parâmetros corretos na URL: " + problems.join(" e ") + ". Volte ao menu e escolha novamente.");
-  throw new Error("parâmetros inválidos (stage=" + STAGE + ", quad=" + QUAD + ")");
+  throw new Error("parâmetros inválidos (track=" + TRACK + ", stage=" + STAGE + ", quad=" + QUAD + ")");
 }
 
 document.getElementById("view-vote").classList.add("active");
@@ -924,12 +1044,12 @@ document.getElementById("view-vote").style.display = "block";
 var qmeta = QUADS_META[QUAD];
 document.documentElement.style.setProperty("--accent", qmeta.accent);
 document.documentElement.style.setProperty("--accent-soft", qmeta.accent_soft);
-document.title = "Votação SWOT — " + qmeta.label + " — " + STAGE_LABELS[STAGE] + " — RV Digital 2027";
+document.title = "Votação " + TRACK_LABELS[TRACK] + " — " + qmeta.label + " — " + STAGE_LABELS[STAGE] + " — RV Digital 2027";
 document.getElementById("quad-label-span").textContent = qmeta.label;
-document.getElementById("hero-eyebrow").textContent = "RV Digital · Planejamento Estratégico 2027 · SWOT " + STAGE_LABELS[STAGE];
-document.getElementById("pagefoot-text").textContent = "Planejamento Estratégico RV Digital 2027 — Votação anônima do quadrante " + qmeta.label + " · SWOT " + STAGE_LABELS[STAGE];
+document.getElementById("hero-eyebrow").textContent = "RV Digital · Planejamento Estratégico 2027 · " + TRACK_LABELS[TRACK] + " " + STAGE_LABELS[STAGE];
+document.getElementById("pagefoot-text").textContent = "Planejamento Estratégico RV Digital 2027 — Votação anônima do quadrante " + qmeta.label + " · " + TRACK_LABELS[TRACK] + " " + STAGE_LABELS[STAGE];
 
-var BASE_ITEMS = ITEMS_ALL[STAGE][QUAD];
+var BASE_ITEMS = ITEMS_ALL[TRACK][STAGE][QUAD];
 var ITEMS = JSON.parse(JSON.stringify(BASE_ITEMS));
 updateHeroSub();
 
@@ -1009,7 +1129,10 @@ if(deviceIdCopyBtn){
 
 function updateHeroSub(){
   var sub = document.getElementById("hero-sub");
-  if(sub) sub.textContent = "Votação anônima. Esta votação é exclusiva do quadrante " + qmeta.label.toLowerCase() + " (" + ITEMS.length + " itens).";
+  if(!sub) return;
+  sub.textContent = (TRACK === "projetos")
+    ? ("Votação anônima. Esta votação reúne os " + ITEMS.length + " projetos propostos para 2027 nesta etapa.")
+    : ("Votação anônima. Esta votação é exclusiva do quadrante " + qmeta.label.toLowerCase() + " (" + ITEMS.length + " itens).");
 }
 
 function origSlug(o){
@@ -1113,14 +1236,23 @@ function renderItem(it, idx){
     var origLis = it.originals.map(function(o){
       return "<li>"+escapeHtml(o.text)+' <span class="oi-origin '+origClass(o.origin)+'">'+escapeHtml(o.origin)+'</span></li>';
     }).join("");
-    details = '<details class="orig"><summary>Ver as '+it.originals.length+' propostas originais e o motivo da unifica&ccedil;&atilde;o</summary>'
+    var unifLabel = (TRACK === "projetos")
+      ? ('Ver as '+it.originals.length+' propostas originais e o motivo da converg&ecirc;ncia')
+      : ('Ver as '+it.originals.length+' propostas originais e o motivo da unifica&ccedil;&atilde;o');
+    details = '<details class="orig"><summary>'+unifLabel+'</summary>'
       + '<ol>'+origLis+'</ol>'
       + '<div class="reason">'+escapeHtml(it.reason)+'</div>'
       + '</details>';
   }
+  // Projetos 2027: a descrição (Comentário original ou descrição sugerida de
+  // consolidação) aparece direto no card, fora do expander — são propostas
+  // substantivas e quem vota precisa desse contexto para julgá-las; o SWOT
+  // não tem esse campo (seus itens são só o título curto).
+  var descBlock = it.description ? '<p class="item-desc">'+escapeHtml(it.description)+'</p>' : "";
   return '<div class="item'+(it.migrated?' is-migrated':'')+'" id="item-'+it.id+'" data-id="'+it.id+'">'
     + '<div class="item-top"><div class="item-idx mono">#'+idx+'</div><div class="item-title">'+escapeHtml(it.title)+'</div></div>'
     + '<div class="item-meta">'+migChip+typeChip+originChips+divisionChips+'</div>'
+    + descBlock
     + details
     + '<div class="vote-row">'
     +   voteBtn(it.id,5,"Concordo totalmente")
@@ -1211,18 +1343,18 @@ function castVote(itemId, score){
 
 function showAlreadyVotedNoteIfAny(){
   try{
-    var key = "rv_voted_" + STAGE + "_" + QUAD;
+    var key = "rv_voted_" + TRACK + "_" + STAGE + "_" + QUAD;
     var ts = localStorage.getItem(key);
     if(!ts) return;
     var d = new Date(ts);
     var formatted = isNaN(d.getTime()) ? ts : d.toLocaleString("pt-BR");
     var note = document.getElementById("already-voted-note");
     note.style.display = "block";
-    note.textContent = "Você já registrou respostas para este quadrante em " + formatted + " — você pode revisar e alterar suas respostas abaixo.";
+    note.textContent = "Você já registrou respostas para esta votação em " + formatted + " — você pode revisar e alterar suas respostas abaixo.";
   }catch(e){ /* localStorage indisponível — apenas não mostra o aviso */ }
 }
 function markVotedInLocalStorage(){
-  try{ localStorage.setItem("rv_voted_" + STAGE + "_" + QUAD, new Date().toISOString()); }catch(e){}
+  try{ localStorage.setItem("rv_voted_" + TRACK + "_" + STAGE + "_" + QUAD, new Date().toISOString()); }catch(e){}
 }
 
 async function saveAllVotes(){
@@ -1241,7 +1373,7 @@ async function saveAllVotes(){
   try{
     // Grava o voto chamando a função save_vote_v2 (ver schema.sql), já com a
     // etapa (stage) — substitui a antiga save_vote de etapa única.
-    var res = await sb.rpc("save_vote_v2", { p_stage: STAGE, p_quadrant: QUAD, p_client_id: myId, p_scores: Object.assign({}, myVotes) });
+    var res = await sb.rpc("save_vote_v2", { p_track: TRACK, p_stage: STAGE, p_quadrant: QUAD, p_client_id: myId, p_scores: Object.assign({}, myVotes) });
     if(res.error) throw res.error;
     savedVotes = Object.assign({}, myVotes);
     saving = false; paintMyVotes();
@@ -1268,7 +1400,7 @@ document.getElementById("origin-filter").addEventListener("click", function(e){
 
 async function loadConfig(){
   try{
-    var res = await sb.from("voting_config").select("is_open").eq("stage", STAGE).eq("quadrant", QUAD).maybeSingle();
+    var res = await sb.from("voting_config").select("is_open").eq("track", TRACK).eq("stage", STAGE).eq("quadrant", QUAD).maybeSingle();
     if(!res.error && res.data) votingOpen = !!res.data.is_open;
   }catch(e){ console.warn("config load failed", e); }
   paintMyVotes();
@@ -1309,19 +1441,23 @@ async function computeMigratedItems(){
   // coincidência exista nas duas etapas poderia "migrar" por engano.
   if(STAGE !== "naotelecom") return [];
   try{
-    var prioRes = await sb.from("item_prioritized").select("item_id").eq("stage", "telecom").eq("quadrant", QUAD);
+    // O filtro por TRACK (além de stage='telecom') é obrigatório: a tabela
+    // item_prioritized agora também guarda linhas da trilha Projetos 2027,
+    // e um item_id que por coincidência exista nas duas trilhas nunca pode
+    // "migrar" por engano de uma trilha para a outra.
+    var prioRes = await sb.from("item_prioritized").select("item_id").eq("track", TRACK).eq("stage", "telecom").eq("quadrant", QUAD);
     if(prioRes.error || !prioRes.data || !prioRes.data.length) return [];
     var prioSet = {};
     prioRes.data.forEach(function(r){ prioSet[r.item_id] = true; });
 
-    var tEditsRes = await sb.from("item_edits").select("item_id,title").eq("stage","telecom").eq("quadrant", QUAD);
-    var tAddedRes = await sb.from("item_added").select("item_id,title,origin,division").eq("stage","telecom").eq("quadrant", QUAD);
-    var tRemovedRes = await sb.from("item_removed").select("item_id").eq("stage","telecom").eq("quadrant", QUAD);
+    var tEditsRes = await sb.from("item_edits").select("item_id,title").eq("track", TRACK).eq("stage","telecom").eq("quadrant", QUAD);
+    var tAddedRes = await sb.from("item_added").select("item_id,title,origin,division").eq("track", TRACK).eq("stage","telecom").eq("quadrant", QUAD);
+    var tRemovedRes = await sb.from("item_removed").select("item_id").eq("track", TRACK).eq("stage","telecom").eq("quadrant", QUAD);
     var tEditMap = {}; if(!tEditsRes.error) (tEditsRes.data||[]).forEach(function(r){ tEditMap[r.item_id] = r.title; });
     var tRemovedSet = {}; if(!tRemovedRes.error) (tRemovedRes.data||[]).forEach(function(r){ tRemovedSet[r.item_id] = true; });
     var tAddedList = (!tAddedRes.error && tAddedRes.data) ? tAddedRes.data : [];
 
-    var telecomItems = applyChanges(ITEMS_ALL["telecom"][QUAD], tEditMap, tAddedList, tRemovedSet);
+    var telecomItems = applyChanges(ITEMS_ALL[TRACK]["telecom"][QUAD], tEditMap, tAddedList, tRemovedSet);
 
     var survivors = telecomItems.filter(function(it){
       return prioSet[it.id] && tagLabelFromOrigins(it.origins) === "Ambos";
@@ -1337,8 +1473,8 @@ async function computeMigratedItems(){
     // Aplica edições/remoções feitas na própria etapa Não Telecom sobre os
     // itens migrados (identificados pelo prefixo "mig_"), sem afetar o item
     // original na etapa Telecom + Ambos.
-    var mEditsRes = await sb.from("item_edits").select("item_id,title").eq("stage","naotelecom").eq("quadrant", QUAD);
-    var mRemovedRes = await sb.from("item_removed").select("item_id").eq("stage","naotelecom").eq("quadrant", QUAD);
+    var mEditsRes = await sb.from("item_edits").select("item_id,title").eq("track", TRACK).eq("stage","naotelecom").eq("quadrant", QUAD);
+    var mRemovedRes = await sb.from("item_removed").select("item_id").eq("track", TRACK).eq("stage","naotelecom").eq("quadrant", QUAD);
     var mEditMap = {}; if(!mEditsRes.error) (mEditsRes.data||[]).forEach(function(r){ if(r.item_id.indexOf("mig_") === 0) mEditMap[r.item_id] = r.title; });
     var mRemovedSet = {}; if(!mRemovedRes.error) (mRemovedRes.data||[]).forEach(function(r){ if(r.item_id.indexOf("mig_") === 0) mRemovedSet[r.item_id] = true; });
 
@@ -1355,9 +1491,9 @@ async function loadItemChanges(){
   // anterior), assim uma remoção desfeita ou uma edição revertida também
   // aparece certo aqui, sem precisar recarregar a página.
   try{
-    var editsRes = await sb.from("item_edits").select("item_id,title").eq("stage", STAGE).eq("quadrant", QUAD);
-    var addedRes = await sb.from("item_added").select("item_id,title,origin,division").eq("stage", STAGE).eq("quadrant", QUAD);
-    var removedRes = await sb.from("item_removed").select("item_id").eq("stage", STAGE).eq("quadrant", QUAD);
+    var editsRes = await sb.from("item_edits").select("item_id,title").eq("track", TRACK).eq("stage", STAGE).eq("quadrant", QUAD);
+    var addedRes = await sb.from("item_added").select("item_id,title,origin,division").eq("track", TRACK).eq("stage", STAGE).eq("quadrant", QUAD);
+    var removedRes = await sb.from("item_removed").select("item_id").eq("track", TRACK).eq("stage", STAGE).eq("quadrant", QUAD);
     var editMap = {};
     if(!editsRes.error) (editsRes.data || []).forEach(function(r){ editMap[r.item_id] = r.title; });
     var removedSet = {};
@@ -1422,8 +1558,8 @@ INDEX_TEMPLATE = HEAD.replace("__PAGE_TITLE__", "Votação SWOT — RV Digital 2
   <div class="hero-inner" style="align-items:center;">
     <div class="hero-text" style="padding-top:0;">
       <div class="hero-eyebrow">RV Digital &middot; Planejamento Estrat&eacute;gico 2027</div>
-      <h1 class="hero-title">Vota&ccedil;&atilde;o SWOT</h1>
-      <div class="hero-sub">Escolha a etapa e o quadrante que deseja avaliar. A vota&ccedil;&atilde;o &eacute; an&ocirc;nima e n&atilde;o exige login.</div>
+      <h1 class="hero-title" id="index-hero-title">Vota&ccedil;&atilde;o &mdash; Planejamento 2027</h1>
+      <div class="hero-sub">Escolha o que deseja avaliar. A vota&ccedil;&atilde;o &eacute; an&ocirc;nima e n&atilde;o exige login.</div>
     </div>
     <div class="rv-logo hero-logo"><img src="data:image/png;base64,__LOGO_A_B64__" alt="RV Digital"></div>
   </div>
@@ -1431,19 +1567,57 @@ INDEX_TEMPLATE = HEAD.replace("__PAGE_TITLE__", "Votação SWOT — RV Digital 2
 
 <main style="max-width:680px;">
 
-  <div id="step1">
+  <div id="step0">
     <div class="stage-grid">
-      <div class="stage-card" data-stage="telecom" style="--mc-accent:#14548c; --mc-soft:#e4edf6;" tabindex="0" role="button">
+      <div class="stage-card" data-track="swot" style="--mc-accent:#14548c; --mc-soft:#e4edf6;" tabindex="0" role="button">
+        <div class="stage-card-icon"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></div>
+        <div class="stage-card-title">SWOT</div>
+        <div class="stage-card-desc">Votação sobre as forças, fraquezas, oportunidades e ameaças do painel estratégico 2027.</div>
+      </div>
+      <div class="stage-card" data-track="projetos" style="--mc-accent:#8a5a00; --mc-soft:#fdf0dc;" tabindex="0" role="button">
+        <div class="stage-card-icon"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+        <div class="stage-card-title">Projetos 2027</div>
+        <div class="stage-card-desc">Votação sobre os projetos propostos para o Planejamento Estratégico 2027.</div>
+      </div>
+    </div>
+    <div class="index-footnote">Sua vota&ccedil;&atilde;o &eacute; an&ocirc;nima: apenas os totais agregados ficam vis&iacute;veis, e somente para os administradores autorizados.</div>
+  </div>
+
+  <div id="step1-swot" style="display:none;">
+    <button class="step-back" data-back="0">&larr; voltar</button>
+    <div class="stage-grid">
+      <div class="stage-card" data-track="swot" data-stage="telecom" style="--mc-accent:#14548c; --mc-soft:#e4edf6;" tabindex="0" role="button">
         <div class="stage-card-icon"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg></div>
         <div class="stage-card-title">Telecom + Ambos</div>
         <div class="stage-card-desc">Votação sobre as propostas SWOT do negócio Telecom e das propostas que valem para os dois negócios.</div>
       </div>
-      <div class="stage-card" data-stage="naotelecom" style="--mc-accent:#0d6b4a; --mc-soft:#e2f7ee;" tabindex="0" role="button">
+      <div class="stage-card" data-track="swot" data-stage="naotelecom" style="--mc-accent:#0d6b4a; --mc-soft:#e2f7ee;" tabindex="0" role="button">
         <div class="stage-card-icon"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg></div>
         <div class="stage-card-title">N&atilde;o Telecom + Ambos</div>
         <div class="stage-card-desc">Votação sobre as propostas SWOT do negócio Não Telecom e das propostas "Ambos" já priorizadas na etapa Telecom.</div>
-        <div class="stage-card-note" id="naotelecom-note" style="display:none;">Dispon&iacute;vel ap&oacute;s a prioriza&ccedil;&atilde;o da etapa Telecom + Ambos.</div>
+        <div class="stage-card-note" id="naotelecom-note-swot" style="display:none;">Dispon&iacute;vel ap&oacute;s a prioriza&ccedil;&atilde;o da etapa Telecom + Ambos.</div>
       </div>
+    </div>
+    <div style="text-align:center; margin-top:30px;">
+      <a href="admin.html" class="admin-link-pill">&#128274; Acesso administrativo (resultados)</a>
+    </div>
+    <div class="index-footnote">Sua vota&ccedil;&atilde;o &eacute; an&ocirc;nima: apenas os totais agregados ficam vis&iacute;veis, e somente para os administradores autorizados.</div>
+  </div>
+
+  <div id="step1-projetos" style="display:none;">
+    <button class="step-back" data-back="0">&larr; voltar</button>
+    <div class="stage-grid">
+      <a class="stage-card" href="voto.html?track=projetos&amp;stage=telecom&amp;quad=geral" data-track="projetos" data-stage="telecom" style="--mc-accent:#14548c; --mc-soft:#e4edf6;">
+        <div class="stage-card-icon"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg></div>
+        <div class="stage-card-title">Telecom + Ambos<span class="voted-badge-slot"></span></div>
+        <div class="stage-card-desc">Votação sobre os projetos com tag Telecom e os projetos "Ambos", que valem para os dois negócios.</div>
+      </a>
+      <a class="stage-card" href="voto.html?track=projetos&amp;stage=naotelecom&amp;quad=geral" data-track="projetos" data-stage="naotelecom" style="--mc-accent:#0d6b4a; --mc-soft:#e2f7ee;">
+        <div class="stage-card-icon"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg></div>
+        <div class="stage-card-title">N&atilde;o Telecom + Ambos<span class="voted-badge-slot"></span></div>
+        <div class="stage-card-desc">Votação sobre os projetos com tag Não Telecom e os projetos "Ambos" já priorizados na etapa Telecom.</div>
+        <div class="stage-card-note" id="naotelecom-note-projetos" style="display:none;">Dispon&iacute;vel ap&oacute;s a prioriza&ccedil;&atilde;o da etapa Telecom + Ambos.</div>
+      </a>
     </div>
     <div style="text-align:center; margin-top:30px;">
       <a href="admin.html" class="admin-link-pill">&#128274; Acesso administrativo (resultados)</a>
@@ -1484,31 +1658,68 @@ try{
   }
 }catch(e){ console.warn("supabase init failed on index", e); }
 
+var currentTrack = null;
+
+function showStep0(){
+  currentTrack = null;
+  document.getElementById("step0").style.display = "block";
+  document.getElementById("step1-swot").style.display = "none";
+  document.getElementById("step1-projetos").style.display = "none";
+  document.getElementById("step2-telecom").style.display = "none";
+  document.getElementById("step2-naotelecom").style.display = "none";
+}
+function showStep1(track){
+  currentTrack = track;
+  document.getElementById("step0").style.display = "none";
+  document.getElementById("step1-swot").style.display = (track === "swot") ? "block" : "none";
+  document.getElementById("step1-projetos").style.display = (track === "projetos") ? "block" : "none";
+  document.getElementById("step2-telecom").style.display = "none";
+  document.getElementById("step2-naotelecom").style.display = "none";
+  paintVotedBadges();
+  checkNaoTelecomStatus(track);
+}
 function showStep2(stage){
-  document.getElementById("step1").style.display = "none";
+  // Só a trilha SWOT passa por este 2º passo (escolha de quadrante) — a
+  // trilha Projetos 2027 é um ballot único por etapa, sem subdivisão, então
+  // os cartões de etapa de step1-projetos já são links diretos para
+  // voto.html (ver HTML acima) e nunca chamam esta função.
+  document.getElementById("step1-swot").style.display = "none";
   document.getElementById("step2-telecom").style.display = (stage === "telecom") ? "block" : "none";
   document.getElementById("step2-naotelecom").style.display = (stage === "naotelecom") ? "block" : "none";
   paintVotedBadges();
 }
-function showStep1(){
-  document.getElementById("step1").style.display = "block";
-  document.getElementById("step2-telecom").style.display = "none";
-  document.getElementById("step2-naotelecom").style.display = "none";
-}
-document.querySelectorAll(".stage-card").forEach(function(card){
+document.querySelectorAll("#step0 .stage-card[data-track]").forEach(function(card){
+  card.addEventListener("click", function(){ showStep1(card.getAttribute("data-track")); });
+  card.addEventListener("keydown", function(e){ if(e.key === "Enter" || e.key === " "){ e.preventDefault(); showStep1(card.getAttribute("data-track")); } });
+});
+document.querySelectorAll("#step1-swot .stage-card[data-stage]").forEach(function(card){
   card.addEventListener("click", function(){ showStep2(card.getAttribute("data-stage")); });
   card.addEventListener("keydown", function(e){ if(e.key === "Enter" || e.key === " "){ e.preventDefault(); showStep2(card.getAttribute("data-stage")); } });
 });
 document.querySelectorAll(".step-back").forEach(function(b){
-  b.addEventListener("click", showStep1);
+  b.addEventListener("click", function(){
+    var back = b.getAttribute("data-back");
+    if(back === "0") showStep0(); else showStep1("swot");
+  });
 });
 
 function paintVotedBadges(){
   try{
+    // Quadrantes do SWOT (step2, um selo por etapa+quadrante).
     document.querySelectorAll(".menu-card[data-stage][data-quad]").forEach(function(card){
       var stage = card.getAttribute("data-stage");
       var quad = card.getAttribute("data-quad");
-      var key = "rv_voted_" + stage + "_" + quad;
+      var key = "rv_voted_swot_" + stage + "_" + quad;
+      var voted = !!localStorage.getItem(key);
+      card.classList.toggle("is-voted", voted);
+      var badgeSlot = card.querySelector(".voted-badge-slot");
+      if(badgeSlot) badgeSlot.innerHTML = voted ? '<span class="voted-badge">J&aacute; votado</span>' : "";
+    });
+    // Etapas da trilha Projetos 2027 (step1-projetos): sem quadrante, o selo
+    // vai direto no cartão de etapa, com quad fixo "geral".
+    document.querySelectorAll("#step1-projetos .stage-card[data-stage]").forEach(function(card){
+      var stage = card.getAttribute("data-stage");
+      var key = "rv_voted_projetos_" + stage + "_geral";
       var voted = !!localStorage.getItem(key);
       card.classList.toggle("is-voted", voted);
       var badgeSlot = card.querySelector(".voted-badge-slot");
@@ -1518,15 +1729,17 @@ function paintVotedBadges(){
 }
 paintVotedBadges();
 
-(async function checkNaoTelecomStatus(){
-  if(!sb) return;
+async function checkNaoTelecomStatus(track){
+  if(!sb || (track !== "swot" && track !== "projetos")) return;
+  var noteEl = document.getElementById(track === "swot" ? "naotelecom-note-swot" : "naotelecom-note-projetos");
+  if(!noteEl) return;
   try{
-    var res = await sb.from("voting_config").select("is_open").eq("stage", "naotelecom");
-    if(res.error || !res.data || res.data.length < 4) return;
+    var res = await sb.from("voting_config").select("is_open").eq("track", track).eq("stage", "naotelecom");
+    if(res.error || !res.data || !res.data.length) return;
     var allClosed = res.data.every(function(r){ return !r.is_open; });
-    if(allClosed){ document.getElementById("naotelecom-note").style.display = "block"; }
+    if(allClosed){ noteEl.style.display = "block"; }
   }catch(e){ /* falha de rede/RLS — ignora silenciosamente, nunca quebra o seletor */ }
-})();
+}
 
 }catch(e){ console.error("index init error", e); }
 </script>
@@ -1536,7 +1749,7 @@ paintVotedBadges();
 
 def menu_card_html(stage, q):
     return (
-        '<a class="menu-card" href="voto.html?stage=' + stage + '&quad=' + q["key"] + '" '
+        '<a class="menu-card" href="voto.html?track=swot&stage=' + stage + '&quad=' + q["key"] + '" '
         'data-stage="' + stage + '" data-quad="' + q["key"] + '" '
         'style="--mc-accent:' + q["accent"] + '; --mc-soft:' + q["accent_soft"] + ';">'
         '<div class="menu-card-icon">' + MENU_ICONS[q["key"]] + '</div>'
@@ -1565,12 +1778,16 @@ ADMIN_TEMPLATE = HEAD.replace("__PAGE_TITLE__", "Painel Administrativo &mdash; V
     <div class="hero-text">
       <a class="back-to-menu" href="./index.html">&larr; Voltar ao menu</a>
       <div class="hero-eyebrow">RV Digital &middot; Planejamento Estrat&eacute;gico 2027</div>
-      <h1 class="hero-title">Painel Administrativo &mdash; Vota&ccedil;&atilde;o SWOT</h1>
+      <h1 class="hero-title" id="admin-hero-title">Painel Administrativo &mdash; Vota&ccedil;&atilde;o</h1>
       <div class="hero-sub">Acompanhamento ao vivo, restrito aos administradores.</div>
+      <div class="top-tabs" id="track-tabs" style="display:none;">
+        <button class="tab-btn active" data-track="swot">SWOT</button>
+        <button class="tab-btn" data-track="projetos">Projetos 2027</button>
+      </div>
       <div class="top-tabs stage-tabs" id="stage-tabs" style="display:none;">
         <button class="tab-btn active" data-stage="telecom">Telecom + Ambos</button>
         <button class="tab-btn" data-stage="naotelecom">N&atilde;o Telecom + Ambos</button>
-        <button class="tab-btn" data-stage="consolidacao">Consolida&ccedil;&atilde;o Final</button>
+        <button class="tab-btn" id="stage-tab-consolidacao" data-stage="consolidacao">Consolida&ccedil;&atilde;o Final</button>
       </div>
       <div class="top-tabs" id="tabs" style="display:none;">
         <button class="tab-btn active" data-q="forcas">For&ccedil;as</button>
@@ -1653,36 +1870,75 @@ function fatalConfigError(e){
 
 try{
 
-var BASE_ALL_ITEMS = __ALL_ITEMS_JSON__;   // { telecom:{forcas:[...],...}, naotelecom:{...} } — nunca é alterado
-var ALL_ITEMS = { forcas:[], fraquezas:[], oportunidades:[], ameacas:[] }; // recalculado a cada refreshAll(), para a etapa atual
+var BASE_ALL_ITEMS = __ALL_ITEMS_JSON__;   // { swot:{telecom:{forcas:[...],...},naotelecom:{...}}, projetos:{telecom:{geral:[...]},naotelecom:{geral:[...]}} } — nunca é alterado
 if(!window.RV_SUPABASE_URL || !window.RV_SUPABASE_ANON_KEY || window.RV_SUPABASE_URL.indexOf("COLOQUE_AQUI") !== -1){
   throw new Error("supabase-config.js não está preenchido (URL ou chave ausente).");
 }
 var sb = window.supabase.createClient(window.RV_SUPABASE_URL, window.RV_SUPABASE_ANON_KEY);
+
+// ============================================================================
+// Trilha (track): "swot" (4 quadrantes) ou "projetos" (1 quadrante fixo
+// "geral", sem subdivisão — ver nota em generate.py). QUAD_ORDER/QUAD_LABELS/
+// QUAD_COLORS são REATRIBUÍDOS por setTrack() a cada troca de trilha — todo
+// o resto do painel (abas de quadrante, resultados, resumo, editar textos,
+// exportação) já é escrito em termos dessas 3 variáveis, então não precisa
+// saber nada sobre a trilha atual para funcionar nas duas.
+// ============================================================================
+var TRACKS = {
+  swot: { quads: ["forcas","fraquezas","oportunidades","ameacas"], hasConsol: true },
+  projetos: { quads: ["geral"], hasConsol: false }
+};
+var QUAD_LABELS_BY_TRACK = {
+  swot: { forcas:"Forças", fraquezas:"Fraquezas", oportunidades:"Oportunidades", ameacas:"Ameaças" },
+  projetos: { geral: "Projetos 2027" }
+};
+var QUAD_COLORS_BY_TRACK = {
+  swot: { forcas:"var(--green)", fraquezas:"var(--gold)", oportunidades:"var(--navy-lt)", ameacas:"var(--red)" },
+  projetos: { geral: "var(--navy-lt)" }
+};
+var TRACK_LABELS = { swot: "SWOT", projetos: "Projetos 2027" };
+var currentTrack = "swot";
+var QUAD_ORDER, QUAD_LABELS, QUAD_COLORS;
+
+function emptyQuadMap(valFn){
+  var o = {};
+  QUAD_ORDER.forEach(function(q){ o[q] = valFn(); });
+  return o;
+}
+
+function setTrack(track){
+  currentTrack = track;
+  QUAD_ORDER = TRACKS[track].quads.slice();
+  QUAD_LABELS = QUAD_LABELS_BY_TRACK[track];
+  QUAD_COLORS = QUAD_COLORS_BY_TRACK[track];
+  currentQuad = QUAD_ORDER[0];
+  if(currentStage === "consolidacao" && !TRACKS[track].hasConsol) currentStage = "telecom";
+}
+
 var currentStage = "telecom";
 var currentQuad = "forcas";
+setTrack("swot");
 var votingOpenByQuad = {};
 var rowsByQuad = {};
-var itemEditsByQuad = { forcas:{}, fraquezas:{}, oportunidades:{}, ameacas:{} };
-var itemAddedByQuad = { forcas:[], fraquezas:[], oportunidades:[], ameacas:[] };
-var itemRemovedByQuad = { forcas:{}, fraquezas:{}, oportunidades:{}, ameacas:{} };
-var rankOverridesByQuad = { forcas:{}, fraquezas:{}, oportunidades:{}, ameacas:{} };
-// prioritizedSet é escopado pela etapa ATUAL (item_prioritized.stage = currentStage)
-// desde que a tabela ganhou a coluna "stage" — usado para desenhar o checkbox
+var itemEditsByQuad = emptyQuadMap(function(){ return {}; });
+var itemAddedByQuad = emptyQuadMap(function(){ return []; });
+var itemRemovedByQuad = emptyQuadMap(function(){ return {}; });
+var rankOverridesByQuad = emptyQuadMap(function(){ return {}; });
+var ALL_ITEMS = emptyQuadMap(function(){ return []; }); // recalculado a cada refreshAll(), para a trilha/etapa atuais
+// prioritizedSet é escopado pela trilha+etapa ATUAIS (item_prioritized.track
+// = currentTrack, .stage = currentStage) — usado para desenhar o checkbox
 // "Priorizar" tanto na etapa Telecom + Ambos quanto na etapa Não Telecom + Ambos.
-var prioritizedSet = { forcas:{}, fraquezas:{}, oportunidades:{}, ameacas:{} };
-// prioritizedTelecomSet é SEMPRE relativo à etapa Telecom + Ambos (stage='telecom'),
-// independente da etapa atual — usado para calcular quais itens com tag "Ambos"
-// migram para a etapa Não Telecom + Ambos (e para a aba Consolidação Final).
-var prioritizedTelecomSet = { forcas:{}, fraquezas:{}, oportunidades:{}, ameacas:{} };
+var prioritizedSet = emptyQuadMap(function(){ return {}; });
+// prioritizedTelecomSet é SEMPRE relativo à etapa Telecom + Ambos da MESMA
+// trilha atual (track=currentTrack, stage='telecom'), independente da etapa
+// atual — usado para calcular quais itens com tag "Ambos" migram para a
+// etapa Não Telecom + Ambos (e, na trilha SWOT, para a aba Consolidação Final).
+var prioritizedTelecomSet = emptyQuadMap(function(){ return {}; });
 var adminOrder = "original";
 var adminView = "results";
 var topN = 5;
 var resetArmed = false, resetArmTimer = null;
-var QUAD_LABELS = { forcas:"Forças", fraquezas:"Fraquezas", oportunidades:"Oportunidades", ameacas:"Ameaças" };
-var QUAD_COLORS = { forcas:"var(--green)", fraquezas:"var(--gold)", oportunidades:"var(--navy-lt)", ameacas:"var(--red)" };
 var STAGE_LABELS = { telecom: "Telecom + Ambos", naotelecom: "Não Telecom + Ambos", consolidacao: "Consolidação Final" };
-var QUAD_ORDER = ["forcas","fraquezas","oportunidades","ameacas"];
 // Estado exclusivo da aba "Consolidação Final" (cross-etapa): preenchido por
 // fetchConsolidationData(), nunca usado fora de renderConsolidationView().
 var consolData = null; // { itemsByQuad: {forcas:[...],...}, anyOpen: true/false, openList: [...] }
@@ -1737,16 +1993,16 @@ async function fetchStageState(stage){
   // Ambos e calcular quais itens migram por já estarem priorizados e com
   // tag "Ambos".
   var out = {
-    editsByQuad: { forcas:{}, fraquezas:{}, oportunidades:{}, ameacas:{} },
-    addedByQuad: { forcas:[], fraquezas:[], oportunidades:[], ameacas:[] },
-    removedByQuad: { forcas:{}, fraquezas:{}, oportunidades:{}, ameacas:{} }
+    editsByQuad: emptyQuadMap(function(){ return {}; }),
+    addedByQuad: emptyQuadMap(function(){ return []; }),
+    removedByQuad: emptyQuadMap(function(){ return {}; })
   };
   try{
-    var editsRes = await sb.from("item_edits").select("quadrant,item_id,title").eq("stage", stage);
+    var editsRes = await sb.from("item_edits").select("quadrant,item_id,title").eq("track", currentTrack).eq("stage", stage);
     if(!editsRes.error) (editsRes.data || []).forEach(function(r){ if(out.editsByQuad[r.quadrant]) out.editsByQuad[r.quadrant][r.item_id] = r.title; });
-    var addedRes = await sb.from("item_added").select("quadrant,item_id,title,origin,division").eq("stage", stage);
+    var addedRes = await sb.from("item_added").select("quadrant,item_id,title,origin,division").eq("track", currentTrack).eq("stage", stage);
     if(!addedRes.error) (addedRes.data || []).forEach(function(r){ if(out.addedByQuad[r.quadrant]) out.addedByQuad[r.quadrant].push(r); });
-    var removedRes = await sb.from("item_removed").select("quadrant,item_id").eq("stage", stage);
+    var removedRes = await sb.from("item_removed").select("quadrant,item_id").eq("track", currentTrack).eq("stage", stage);
     if(!removedRes.error) (removedRes.data || []).forEach(function(r){ if(out.removedByQuad[r.quadrant]) out.removedByQuad[r.quadrant][r.item_id] = true; });
   }catch(e){ console.warn("fetchStageState failed for", stage, e); }
   return out;
@@ -1755,6 +2011,7 @@ async function fetchStageState(stage){
 async function onLoggedIn(){
   document.getElementById("login-gate").style.display = "none";
   document.getElementById("dash").style.display = "block";
+  document.getElementById("track-tabs").style.display = "flex";
   document.getElementById("stage-tabs").style.display = "flex";
   applyStageVisibility();
   await refreshAll();
@@ -1773,13 +2030,32 @@ function applyStageVisibility(){
   // reiniciar, contadores) não se aplicam e ficam ocultos; o botão "Sair"
   // continua disponível em qualquer aba.
   var isConsol = currentStage === "consolidacao";
-  document.getElementById("tabs").style.display = isConsol ? "none" : "flex";
+  // A trilha Projetos 2027 não tem subdivisão de quadrante (um único
+  // quadrante fixo "geral") — a linha de abas de quadrante não tem nada
+  // para dividir, então fica sempre oculta nessa trilha.
+  var hasQuadTabs = !isConsol && QUAD_ORDER.length > 1;
+  document.getElementById("tabs").style.display = hasQuadTabs ? "flex" : "none";
+  document.getElementById("stage-tab-consolidacao").style.display = TRACKS[currentTrack].hasConsol ? "inline-flex" : "none";
   document.getElementById("view-toggle").style.display = isConsol ? "none" : "flex";
   document.getElementById("rank-toggle").style.display = (!isConsol && adminView === "results") ? "flex" : "none";
   document.getElementById("admin-toolbar").style.display = isConsol ? "none" : "flex";
   document.getElementById("consol-toolbar").style.display = isConsol ? "flex" : "none";
   document.getElementById("device-reset-box").style.display = isConsol ? "none" : "block";
 }
+document.getElementById("track-tabs").addEventListener("click", function(e){
+  var b = e.target.closest(".tab-btn");
+  if(!b) return;
+  var track = b.getAttribute("data-track");
+  if(track === currentTrack) return;
+  document.querySelectorAll("#track-tabs .tab-btn").forEach(function(x){ x.classList.remove("active"); });
+  b.classList.add("active");
+  setTrack(track); // reatribui QUAD_ORDER/QUAD_LABELS/QUAD_COLORS e currentQuad; pode também normalizar currentStage para fora de "consolidacao"
+  document.getElementById("admin-hero-title").textContent = "Painel Administrativo — Votação " + TRACK_LABELS[currentTrack];
+  document.querySelectorAll("#stage-tabs .tab-btn").forEach(function(x){ x.classList.toggle("active", x.getAttribute("data-stage") === currentStage); });
+  document.querySelectorAll("#tabs .tab-btn").forEach(function(x){ x.classList.toggle("active", x.getAttribute("data-q") === currentQuad); });
+  applyStageVisibility();
+  if(currentStage === "consolidacao"){ refreshConsolidation(); } else { refreshAll(); }
+});
 document.getElementById("stage-tabs").addEventListener("click", function(e){
   var b = e.target.closest(".tab-btn");
   if(!b) return;
@@ -1872,7 +2148,7 @@ document.getElementById("admin-mount").addEventListener("click", async function(
       // atual é "naotelecom", a origem é sempre "Não Telecom"; na etapa
       // "telecom" o admin continua podendo escolher Ambos/Telecom.
       var originValue = (currentStage === "naotelecom") ? "Não Telecom" : (selOrigin ? selOrigin.value : "Ambos");
-      var resA = await sb.from("item_added").insert({ stage: currentStage, quadrant: currentQuad, item_id: newId, title: title0, origin: originValue, division: null });
+      var resA = await sb.from("item_added").insert({ track: currentTrack, stage: currentStage, quadrant: currentQuad, item_id: newId, title: title0, origin: originValue, division: null });
       if(resA.error) throw resA.error;
       ta.value = "";
       await refreshAll();
@@ -1885,7 +2161,7 @@ document.getElementById("admin-mount").addEventListener("click", async function(
 
   if(restoreOrderBtn){
     try{
-      await sb.from("rank_overrides").delete().eq("stage", currentStage).eq("quadrant", currentQuad);
+      await sb.from("rank_overrides").delete().eq("track", currentTrack).eq("stage", currentStage).eq("quadrant", currentQuad);
       rankOverridesByQuad[currentQuad] = {};
       renderDash();
     }catch(errR){ console.warn("restore order failed", errR); }
@@ -1908,12 +2184,12 @@ document.getElementById("admin-mount").addEventListener("click", async function(
     if(rstatus){ rstatus.textContent = "Removendo…"; rstatus.className = "edit-status"; }
     try{
       if(isAdded){
-        var resD = await sb.from("item_added").delete().eq("stage", currentStage).eq("quadrant", currentQuad).eq("item_id", rid);
+        var resD = await sb.from("item_added").delete().eq("track", currentTrack).eq("stage", currentStage).eq("quadrant", currentQuad).eq("item_id", rid);
         if(resD.error) throw resD.error;
       } else {
         var resD2 = await sb.from("item_removed").upsert(
-          { stage: currentStage, quadrant: currentQuad, item_id: rid },
-          { onConflict: "stage,quadrant,item_id" }
+          { track: currentTrack, stage: currentStage, quadrant: currentQuad, item_id: rid },
+          { onConflict: "track,stage,quadrant,item_id" }
         );
         if(resD2.error) throw resD2.error;
       }
@@ -1927,7 +2203,7 @@ document.getElementById("admin-mount").addEventListener("click", async function(
   if(restoreItemBtn){
     var rrid = restoreItemBtn.getAttribute("data-id");
     try{
-      await sb.from("item_removed").delete().eq("stage", currentStage).eq("quadrant", currentQuad).eq("item_id", rrid);
+      await sb.from("item_removed").delete().eq("track", currentTrack).eq("stage", currentStage).eq("quadrant", currentQuad).eq("item_id", rrid);
       await refreshAll();
     }catch(errRR){ console.warn("restore item failed", errRR); }
     return;
@@ -1945,8 +2221,8 @@ document.getElementById("admin-mount").addEventListener("click", async function(
     status.textContent = "Salvando…"; status.className = "edit-status";
     try{
       var res = await sb.from("item_edits").upsert(
-        { stage: currentStage, quadrant: currentQuad, item_id: id, title: newTitle, updated_at: new Date().toISOString() },
-        { onConflict: "stage,quadrant,item_id" }
+        { track: currentTrack, stage: currentStage, quadrant: currentQuad, item_id: id, title: newTitle, updated_at: new Date().toISOString() },
+        { onConflict: "track,stage,quadrant,item_id" }
       );
       if(res.error) throw res.error;
       await refreshAll();
@@ -1957,7 +2233,7 @@ document.getElementById("admin-mount").addEventListener("click", async function(
   } else if(resetBtn){
     status.textContent = "Restaurando…"; status.className = "edit-status";
     try{
-      var res2 = await sb.from("item_edits").delete().eq("stage", currentStage).eq("quadrant", currentQuad).eq("item_id", id);
+      var res2 = await sb.from("item_edits").delete().eq("track", currentTrack).eq("stage", currentStage).eq("quadrant", currentQuad).eq("item_id", id);
       if(res2.error) throw res2.error;
       await refreshAll();
     }catch(err2){
@@ -1987,12 +2263,12 @@ document.getElementById("admin-mount").addEventListener("change", function(e){
     (async function(){
       try{
         if(checked){
-          var r = await sb.from("item_prioritized").insert({ stage: currentStage, quadrant: currentQuad, item_id: id });
+          var r = await sb.from("item_prioritized").insert({ track: currentTrack, stage: currentStage, quadrant: currentQuad, item_id: id });
           if(r.error) throw r.error;
           if(!prioritizedSet[currentQuad]) prioritizedSet[currentQuad] = {};
           prioritizedSet[currentQuad][id] = true;
         } else {
-          var r2 = await sb.from("item_prioritized").delete().eq("stage", currentStage).eq("quadrant", currentQuad).eq("item_id", id);
+          var r2 = await sb.from("item_prioritized").delete().eq("track", currentTrack).eq("stage", currentStage).eq("quadrant", currentQuad).eq("item_id", id);
           if(r2.error) throw r2.error;
           if(prioritizedSet[currentQuad]) delete prioritizedSet[currentQuad][id];
         }
@@ -2024,15 +2300,15 @@ async function moveRank(quad, id, dir){
   renderDash();
 
   try{
-    var rows = list.map(function(x, i){ return { stage: currentStage, quadrant: quad, item_id: x.it.id, position: i, updated_at: new Date().toISOString() }; });
-    var res = await sb.from("rank_overrides").upsert(rows, { onConflict: "stage,quadrant,item_id" });
+    var rows = list.map(function(x, i){ return { track: currentTrack, stage: currentStage, quadrant: quad, item_id: x.it.id, position: i, updated_at: new Date().toISOString() }; });
+    var res = await sb.from("rank_overrides").upsert(rows, { onConflict: "track,stage,quadrant,item_id" });
     if(res.error) throw res.error;
   }catch(e){ console.warn("save rank order failed", e); }
 }
 document.getElementById("toggle-voting").addEventListener("click", async function(){
   var newState = !votingOpenByQuad[currentQuad];
   try{
-    await sb.from("voting_config").update({ is_open: newState }).eq("stage", currentStage).eq("quadrant", currentQuad);
+    await sb.from("voting_config").update({ is_open: newState }).eq("track", currentTrack).eq("stage", currentStage).eq("quadrant", currentQuad);
     votingOpenByQuad[currentQuad] = newState;
     paintToggle();
   }catch(e){ console.warn("toggle failed", e); }
@@ -2060,7 +2336,7 @@ document.getElementById("reset-votes-btn").addEventListener("click", async funct
   btn.disabled = true;
   btn.textContent = "Reiniciando…";
   try{
-    var res = await sb.from("votes").delete().eq("stage", currentStage).eq("quadrant", currentQuad);
+    var res = await sb.from("votes").delete().eq("track", currentTrack).eq("stage", currentStage).eq("quadrant", currentQuad);
     if(res.error) throw res.error;
     await refreshAll();
   }catch(e){
@@ -2088,7 +2364,11 @@ document.getElementById("device-reset-btn").addEventListener("click", async func
   status.textContent = "";
   status.className = "device-reset-status";
   try{
-    var res = await sb.from("votes").delete().eq("stage", currentStage).eq("quadrant", currentQuad).eq("client_id", cid).select();
+    // currentTrack SEMPRE entra neste filtro, mesmo que (stage, quadrant) já
+    // sejam suficientes na prática (quadrant='geral' só existe na trilha
+    // Projetos 2027) — é uma operação destrutiva, então nunca confiamos só
+    // na exclusividade "por construção" dos valores de quadrant.
+    var res = await sb.from("votes").delete().eq("track", currentTrack).eq("stage", currentStage).eq("quadrant", currentQuad).eq("client_id", cid).select();
     if(res.error) throw res.error;
     if(res.data && res.data.length > 0){
       status.textContent = "Voto removido — o aparelho pode responder este quadrante novamente.";
@@ -2110,12 +2390,12 @@ document.getElementById("device-reset-btn").addEventListener("click", async func
 
 async function refreshAll(){
   try{
-    var votesRes = await sb.from("votes").select("quadrant,scores").eq("stage", currentStage);
+    var votesRes = await sb.from("votes").select("quadrant,scores").eq("track", currentTrack).eq("stage", currentStage);
     if(!votesRes.error){
-      rowsByQuad = { forcas: [], fraquezas: [], oportunidades: [], ameacas: [] };
+      rowsByQuad = emptyQuadMap(function(){ return []; });
       (votesRes.data || []).forEach(function(r){ if(rowsByQuad[r.quadrant]) rowsByQuad[r.quadrant].push(r.scores || {}); });
     }
-    var cfgRes = await sb.from("voting_config").select("quadrant,is_open").eq("stage", currentStage);
+    var cfgRes = await sb.from("voting_config").select("quadrant,is_open").eq("track", currentTrack).eq("stage", currentStage);
     if(!cfgRes.error){
       votingOpenByQuad = {};
       (cfgRes.data || []).forEach(function(r){ votingOpenByQuad[r.quadrant] = r.is_open; });
@@ -2126,21 +2406,22 @@ async function refreshAll(){
     itemAddedByQuad = curState.addedByQuad;
     itemRemovedByQuad = curState.removedByQuad;
 
-    var rankRes = await sb.from("rank_overrides").select("quadrant,item_id,position").eq("stage", currentStage);
-    rankOverridesByQuad = { forcas:{}, fraquezas:{}, oportunidades:{}, ameacas:{} };
+    var rankRes = await sb.from("rank_overrides").select("quadrant,item_id,position").eq("track", currentTrack).eq("stage", currentStage);
+    rankOverridesByQuad = emptyQuadMap(function(){ return {}; });
     if(!rankRes.error){
       (rankRes.data || []).forEach(function(r){ if(rankOverridesByQuad[r.quadrant]) rankOverridesByQuad[r.quadrant][r.item_id] = r.position; });
     }
 
-    // item_prioritized agora é escopado por etapa (ver schema.sql). O
+    // item_prioritized agora é escopado por trilha+etapa (ver schema.sql). O
     // checkbox "Priorizar" desenhado na etapa atual usa sempre a priorização
-    // DAQUELA etapa (prioritizedSet); a migração de itens "Ambos" para a
-    // etapa Não Telecom + Ambos é sempre relativa à priorização feita na
-    // etapa Telecom + Ambos (prioritizedTelecomSet), buscada separadamente
-    // sempre que a etapa atual é "naotelecom" (mesmo que currentStage !==
-    // "telecom", pois é a priorização DA OUTRA etapa que importa aqui).
-    var prioRes = await sb.from("item_prioritized").select("quadrant,item_id").eq("stage", currentStage);
-    prioritizedSet = { forcas:{}, fraquezas:{}, oportunidades:{}, ameacas:{} };
+    // DAQUELA trilha+etapa (prioritizedSet); a migração de itens "Ambos" para
+    // a etapa Não Telecom + Ambos é sempre relativa à priorização feita na
+    // etapa Telecom + Ambos da MESMA trilha (prioritizedTelecomSet), buscada
+    // separadamente sempre que a etapa atual é "naotelecom" (mesmo que
+    // currentStage !== "telecom", pois é a priorização DA OUTRA etapa que
+    // importa aqui) — nunca misturando trilhas diferentes.
+    var prioRes = await sb.from("item_prioritized").select("quadrant,item_id").eq("track", currentTrack).eq("stage", currentStage);
+    prioritizedSet = emptyQuadMap(function(){ return {}; });
     if(!prioRes.error){
       (prioRes.data || []).forEach(function(r){ if(prioritizedSet[r.quadrant]) prioritizedSet[r.quadrant][r.item_id] = true; });
     }
@@ -2148,19 +2429,19 @@ async function refreshAll(){
     var telecomState = null;
     if(currentStage === "naotelecom"){
       telecomState = await fetchStageState("telecom");
-      var prioTelRes = await sb.from("item_prioritized").select("quadrant,item_id").eq("stage", "telecom");
-      prioritizedTelecomSet = { forcas:{}, fraquezas:{}, oportunidades:{}, ameacas:{} };
+      var prioTelRes = await sb.from("item_prioritized").select("quadrant,item_id").eq("track", currentTrack).eq("stage", "telecom");
+      prioritizedTelecomSet = emptyQuadMap(function(){ return {}; });
       if(!prioTelRes.error){
         (prioTelRes.data || []).forEach(function(r){ if(prioritizedTelecomSet[r.quadrant]) prioritizedTelecomSet[r.quadrant][r.item_id] = true; });
       }
     }
 
     var next = {};
-    ["forcas","fraquezas","oportunidades","ameacas"].forEach(function(q){
-      var native = applyChanges(BASE_ALL_ITEMS[currentStage][q], itemEditsByQuad[q], itemAddedByQuad[q], itemRemovedByQuad[q]);
+    QUAD_ORDER.forEach(function(q){
+      var native = applyChanges(BASE_ALL_ITEMS[currentTrack][currentStage][q], itemEditsByQuad[q], itemAddedByQuad[q], itemRemovedByQuad[q]);
       var list = native;
       if(currentStage === "naotelecom" && telecomState){
-        var telecomNative = applyChanges(BASE_ALL_ITEMS.telecom[q], telecomState.editsByQuad[q], telecomState.addedByQuad[q], telecomState.removedByQuad[q]);
+        var telecomNative = applyChanges(BASE_ALL_ITEMS[currentTrack].telecom[q], telecomState.editsByQuad[q], telecomState.addedByQuad[q], telecomState.removedByQuad[q]);
         var survivors = telecomNative.filter(function(it){
           return (prioritizedTelecomSet[q] && prioritizedTelecomSet[q][it.id]) && tagLabelFromOrigins(it.origins) === "Ambos";
         });
@@ -2301,7 +2582,10 @@ async function fetchConsolidationData(){
   // Banner de aviso: olha as 8 combinações (stage, quadrant) de voting_config,
   // sem hardcodar nada — se qualquer uma ainda estiver aberta, mostra aviso.
   var openList = [];
-  var cfgRes = await sb.from("voting_config").select("stage,quadrant,is_open");
+  // A Consolidação Final é sempre e só sobre a trilha SWOT (ver nota no
+  // topo do painel) — filtra explicitamente por track="swot" mesmo sabendo
+  // que esta função só é alcançável com currentTrack já em "swot".
+  var cfgRes = await sb.from("voting_config").select("stage,quadrant,is_open").eq("track", "swot");
   if(!cfgRes.error){
     (cfgRes.data || []).forEach(function(r){ if(r.is_open) openList.push({ stage: r.stage, quadrant: r.quadrant }); });
   }
@@ -2315,7 +2599,7 @@ async function fetchConsolidationData(){
     telecom: { forcas:{}, fraquezas:{}, oportunidades:{}, ameacas:{} },
     naotelecom: { forcas:{}, fraquezas:{}, oportunidades:{}, ameacas:{} }
   };
-  var prioRes = await sb.from("item_prioritized").select("stage,quadrant,item_id");
+  var prioRes = await sb.from("item_prioritized").select("stage,quadrant,item_id").eq("track", "swot");
   if(!prioRes.error){
     (prioRes.data || []).forEach(function(r){
       if(prioByStageQuad[r.stage] && prioByStageQuad[r.stage][r.quadrant]) prioByStageQuad[r.stage][r.quadrant][r.item_id] = true;
@@ -2324,8 +2608,8 @@ async function fetchConsolidationData(){
 
   var itemsByQuad = {};
   QUAD_ORDER.forEach(function(q){
-    var telecomItems = applyChanges(BASE_ALL_ITEMS.telecom[q], telecomState.editsByQuad[q], telecomState.addedByQuad[q], telecomState.removedByQuad[q]);
-    var naoItems = applyChanges(BASE_ALL_ITEMS.naotelecom[q], naoState.editsByQuad[q], naoState.addedByQuad[q], naoState.removedByQuad[q]);
+    var telecomItems = applyChanges(BASE_ALL_ITEMS.swot.telecom[q], telecomState.editsByQuad[q], telecomState.addedByQuad[q], telecomState.removedByQuad[q]);
+    var naoItems = applyChanges(BASE_ALL_ITEMS.swot.naotelecom[q], naoState.editsByQuad[q], naoState.addedByQuad[q], naoState.removedByQuad[q]);
     var cats = [];
 
     telecomItems.forEach(function(it){
@@ -2468,7 +2752,7 @@ function renderSummaryView(){
   document.getElementById("admin-voters").textContent = "—";
   document.getElementById("admin-total-votes").textContent = "—";
   document.getElementById("admin-avg").textContent = "—";
-  var order = ["forcas","fraquezas","oportunidades","ameacas"];
+  var order = QUAD_ORDER;
   var html = '<div class="top5-wrap" style="margin-bottom:8px;"><div class="top5-head">'
     + '<h3>&#127942; Resumo Top '+topN+' &mdash; '+STAGE_LABELS[currentStage]+' &mdash; todos os quadrantes</h3>'
     + '<div class="topn-ctrl">Mostrar top <input type="number" min="1" max="50" class="topn-input" value="'+topN+'"> itens</div>'
@@ -2479,11 +2763,8 @@ function renderSummaryView(){
     +   '<option value="pdf">PDF</option>'
     +   '<option value="xlsb">Excel (.xlsb)</option>'
     + '</select>'
-    + '<button class="export-btn" data-quad="forcas">For&ccedil;as</button>'
-    + '<button class="export-btn" data-quad="fraquezas">Fraquezas</button>'
-    + '<button class="export-btn" data-quad="oportunidades">Oportunidades</button>'
-    + '<button class="export-btn" data-quad="ameacas">Amea&ccedil;as</button>'
-    + '<button class="export-btn export-total" data-quad="total">Total (todos os quadrantes)</button>'
+    + QUAD_ORDER.map(function(q){ return '<button class="export-btn" data-quad="'+q+'">'+escapeHtml(QUAD_LABELS[q])+'</button>'; }).join("")
+    + (QUAD_ORDER.length > 1 ? '<button class="export-btn export-total" data-quad="total">Total (todos os quadrantes)</button>' : '')
     + '<span class="export-status" id="export-status"></span>'
     + '</div>';
   order.forEach(function(q){
@@ -2537,7 +2818,7 @@ function renderEditView(){
   if(removedIds.length){
     var rowsHtml = "";
     removedIds.forEach(function(rid){
-      var orig = (BASE_ALL_ITEMS[currentStage][currentQuad] || []).filter(function(o){ return o.id === rid; })[0];
+      var orig = (BASE_ALL_ITEMS[currentTrack][currentStage][currentQuad] || []).filter(function(o){ return o.id === rid; })[0];
       if(!orig) return; // era um item adicionado (ou migrado) que já foi excluído de vez — não aparece aqui
       rowsHtml += '<div class="removed-row"><span class="rt">'+escapeHtml(orig.title)+'</span>'
         + '<button class="restore-item-btn" data-id="'+rid+'">Restaurar</button></div>';
@@ -2560,7 +2841,8 @@ var EXPORT_QUAD_META = {
   forcas:        { label:"Forças",        bar:[220,243,227], text:[30,122,61] },
   fraquezas:     { label:"Fraquezas",     bar:[251,225,225], text:[178,59,59] },
   oportunidades: { label:"Oportunidades", bar:[220,233,247], text:[21,90,150] },
-  ameacas:       { label:"Ameaças",       bar:[253,235,208], text:[179,105,10] }
+  ameacas:       { label:"Ameaças",       bar:[253,235,208], text:[179,105,10] },
+  geral:         { label:"Projetos 2027", bar:[220,233,247], text:[21,90,150] }
 };
 var LOGO_A_DATAURL = "data:image/png;base64,__LOGO_A_B64__";
 
@@ -2578,7 +2860,7 @@ function safeFileLabel(s){
 function drawExportHeader(doc, pageWidth, subtitle){
   try{ doc.addImage(LOGO_A_DATAURL, "PNG", 40, 26, 72, 23); }catch(e){}
   doc.setFont("helvetica", "bold"); doc.setFontSize(18); doc.setTextColor(27,42,74);
-  doc.text("Painel SWOT Consolidado", pageWidth/2, 42, { align:"center" });
+  doc.text(("Painel " + TRACK_LABELS[currentTrack] + " Consolidado"), pageWidth/2, 42, { align:"center" });
   doc.setFont("helvetica", "normal"); doc.setFontSize(11); doc.setTextColor(85,85,85);
   doc.text("Plano Estratégico: Planejamento Estratégico RV Digital 2027 · " + subtitle, pageWidth/2, 58, { align:"center" });
   doc.setDrawColor(220,220,220); doc.setLineWidth(1);
@@ -2680,14 +2962,23 @@ function exportTotalPDF(){
   var JsPDF = getJsPDFCtor();
   var pageW = 1000, pageH = 700;
   var doc = new JsPDF({ unit:"pt", format:[pageW, pageH] });
-  var pairs = [["forcas","fraquezas"], ["oportunidades","ameacas"]];
+  // Agrupa QUAD_ORDER em pares de página (2 tabelas por página) — funciona
+  // tanto para os 4 quadrantes do SWOT (2 páginas de 2) quanto, se chamada,
+  // para o quadrante único "geral" da trilha Projetos 2027 (1 página com 1
+  // tabela ocupando a largura inteira).
+  var pairs = [];
+  for(var pi = 0; pi < QUAD_ORDER.length; pi += 2) pairs.push(QUAD_ORDER.slice(pi, pi+2));
   pairs.forEach(function(pair, idx){
     if(idx > 0) doc.addPage([pageW, pageH]);
-    var subtitle = STAGE_LABELS[currentStage] + " — Top " + topN + " — " + EXPORT_QUAD_META[pair[0]].label + " e " + EXPORT_QUAD_META[pair[1]].label;
+    var subtitle = STAGE_LABELS[currentStage] + " — Top " + topN + " — " + pair.map(function(q){ return EXPORT_QUAD_META[q].label; }).join(" e ");
     drawExportHeader(doc, pageW, subtitle);
-    var colW = (pageW - 80 - 30) / 2;
-    drawQuadTable(doc, pair[0], 40, 96, colW);
-    drawQuadTable(doc, pair[1], 40 + colW + 30, 96, colW);
+    if(pair.length === 2){
+      var colW = (pageW - 80 - 30) / 2;
+      drawQuadTable(doc, pair[0], 40, 96, colW);
+      drawQuadTable(doc, pair[1], 40 + colW + 30, 96, colW);
+    } else {
+      drawQuadTable(doc, pair[0], 40, 96, pageW - 80);
+    }
     drawExportFooter(doc, pageW, pageH, "Tipos: Não Telecom · Telecom · Telecom + Ambos · Ambos");
   });
   doc.save("Top" + topN + "_Total_" + safeFileLabel(STAGE_LABELS[currentStage]) + "_RV_Digital_2027.pdf");
@@ -2697,7 +2988,7 @@ function buildQuadAoa(quad){
   var meta = EXPORT_QUAD_META[quad];
   var rows = buildExportRows(quad);
   var aoa = [
-    ["Painel SWOT Consolidado"],
+    [("Painel " + TRACK_LABELS[currentTrack] + " Consolidado")],
     ["Planejamento Estratégico RV Digital 2027 — " + STAGE_LABELS[currentStage] + " — Top " + topN + " — " + meta.label],
     [],
     [meta.label.toUpperCase()],
@@ -2730,9 +3021,9 @@ function exportQuadXLSB(quad){
 function exportTotalXLSB(){
   if(typeof XLSX === "undefined"){ alert("Biblioteca de planilha não carregou (verifique sua conexão)."); return; }
   var wb = XLSX.utils.book_new();
-  var order = ["forcas","fraquezas","oportunidades","ameacas"];
+  var order = QUAD_ORDER;
   var summaryAoa = [
-    ["Painel SWOT Consolidado"],
+    [("Painel " + TRACK_LABELS[currentTrack] + " Consolidado")],
     ["Planejamento Estratégico RV Digital 2027 — " + STAGE_LABELS[currentStage] + " — Resumo Top " + topN],
     [],
     ["Quadrante", "Itens no Top", "Total de votos"]
@@ -2790,6 +3081,9 @@ document.getElementById("logout-btn-consol").addEventListener("click", async fun
 # DRIVER — gera voto.html, index.html e admin.html neste mesmo diretório.
 # ============================================================================
 QUADS_META = {q["key"]: {"label": q["label"], "accent": q["accent"], "accent_soft": q["accent_soft"]} for q in QUADRANTS}
+# "geral" é o quadrante único/fixo da trilha Projetos 2027 — a chave nunca
+# colide com as 4 chaves do SWOT, então pode viver no mesmo dicionário.
+QUADS_META["geral"] = {"label": "Projetos 2027", "accent": "#14548c", "accent_soft": "#e4edf6"}
 
 # ---- voto.html ----------------------------------------------------------
 voto_html = VOTE_TEMPLATE
@@ -2826,6 +3120,7 @@ with open(OUT_DIR + "/index.html", "w", encoding="utf-8") as f:
     f.write(index_html)
 print("wrote", OUT_DIR + "/index.html")
 
-for stage in ["telecom", "naotelecom"]:
-    for q in QUADRANTS:
-        print("  items", stage, q["key"], len(ITEMS[stage][q["key"]]))
+for track in ITEMS:
+    for stage in ITEMS[track]:
+        for quad, lst in ITEMS[track][stage].items():
+            print("  items", track, stage, quad, len(lst))

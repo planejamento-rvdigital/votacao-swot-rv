@@ -1,5 +1,5 @@
 -- ============================================================================
--- SCHEMA — Votação SWOT RV Digital 2027 (site único, 2 etapas)
+-- SCHEMA — Votação SWOT + Projetos 2027 RV Digital (site único, 2 trilhas x 2 etapas)
 -- Rode este script inteiro de uma vez no Supabase: SQL Editor > New query > Run
 --
 -- Este script é SEGURO para rodar MAIS DE UMA VEZ (idempotente) e é SEGURO
@@ -12,6 +12,15 @@
 --     Telecom + Ambos, que já estava rodando neste projeto);
 --   - cria a tabela nova item_prioritized (checkbox de priorização do admin);
 --   - cria a função save_vote nova, com o parâmetro de etapa.
+--   - (nesta versão) adiciona a coluna "track" ('swot' ou 'projetos') em
+--     TODAS as tabelas acima, porque agora existem DUAS trilhas de votação
+--     na mesma agenda: o SWOT original (4 quadrantes) e os Projetos 2027
+--     (um "quadrante" único e fixo chamado 'geral', sem subdivisão — ver
+--     comentário na tabela votes). Toda linha que já existia antes desta
+--     migração é marcada como track = 'swot' (é exatamente isso que ela é:
+--     não existia outra trilha até agora). O CHECK de "quadrant" também é
+--     ampliado em todas as tabelas para aceitar 'geral' além dos 4
+--     quadrantes do SWOT.
 --
 -- Se você está criando um projeto Supabase do ZERO para este site único,
 -- pode rodar este mesmo script — ele cria tudo já na estrutura final.
@@ -20,7 +29,12 @@
 create extension if not exists "pgcrypto";
 
 -- ============================================================================
--- Tabela de votos: um registro por (etapa, quadrante, pessoa anônima)
+-- Tabela de votos: um registro por (trilha, etapa, quadrante, pessoa anônima)
+-- "quadrant" aceita os 4 quadrantes do SWOT OU 'geral' — 'geral' é o
+-- "quadrante" único e fixo usado pela trilha Projetos 2027, que não tem
+-- subdivisão de quadrante (um ballot único por etapa). Modelar assim reusa,
+-- sem alterar, todo o resto do schema que já é parametrizado por
+-- (stage, quadrant).
 -- ============================================================================
 create table if not exists votes (
   id bigint generated always as identity primary key,
@@ -35,12 +49,19 @@ alter table votes add column if not exists stage text not null default 'telecom'
 update votes set stage = 'telecom' where stage is null;
 alter table votes drop constraint if exists votes_stage_check;
 alter table votes add constraint votes_stage_check check (stage in ('telecom','naotelecom'));
+alter table votes add column if not exists track text not null default 'swot';
+update votes set track = 'swot' where track is null;
+alter table votes drop constraint if exists votes_track_check;
+alter table votes add constraint votes_track_check check (track in ('swot','projetos'));
+alter table votes drop constraint if exists votes_quadrant_check;
+alter table votes add constraint votes_quadrant_check check (quadrant in ('forcas','fraquezas','oportunidades','ameacas','geral'));
 alter table votes drop constraint if exists votes_quadrant_client_id_key;
 alter table votes drop constraint if exists votes_stage_quadrant_client_id_key;
-alter table votes add constraint votes_stage_quadrant_client_id_key unique (stage, quadrant, client_id);
+alter table votes drop constraint if exists votes_track_stage_quadrant_client_id_key;
+alter table votes add constraint votes_track_stage_quadrant_client_id_key unique (track, stage, quadrant, client_id);
 
 -- ============================================================================
--- Tabela de configuração: votação aberta/fechada por (etapa, quadrante)
+-- Tabela de configuração: votação aberta/fechada por (trilha, etapa, quadrante)
 -- ============================================================================
 create table if not exists voting_config (
   stage text not null default 'telecom' check (stage in ('telecom','naotelecom')),
@@ -50,28 +71,42 @@ create table if not exists voting_config (
 
 alter table voting_config add column if not exists stage text not null default 'telecom';
 update voting_config set stage = 'telecom' where stage is null;
+alter table voting_config add column if not exists track text not null default 'swot';
+update voting_config set track = 'swot' where track is null;
 alter table voting_config drop constraint if exists voting_config_pkey;
-alter table voting_config add constraint voting_config_pkey primary key (stage, quadrant);
+alter table voting_config add constraint voting_config_pkey primary key (track, stage, quadrant);
 alter table voting_config drop constraint if exists voting_config_stage_check;
 alter table voting_config add constraint voting_config_stage_check check (stage in ('telecom','naotelecom'));
+alter table voting_config drop constraint if exists voting_config_track_check;
+alter table voting_config add constraint voting_config_track_check check (track in ('swot','projetos'));
+alter table voting_config drop constraint if exists voting_config_quadrant_check;
+alter table voting_config add constraint voting_config_quadrant_check check (quadrant in ('forcas','fraquezas','oportunidades','ameacas','geral'));
 
-insert into voting_config (stage, quadrant, is_open) values
-  ('telecom', 'forcas', true),
-  ('telecom', 'fraquezas', true),
-  ('telecom', 'oportunidades', true),
-  ('telecom', 'ameacas', true)
-on conflict (stage, quadrant) do nothing;
+insert into voting_config (track, stage, quadrant, is_open) values
+  ('swot', 'telecom', 'forcas', true),
+  ('swot', 'telecom', 'fraquezas', true),
+  ('swot', 'telecom', 'oportunidades', true),
+  ('swot', 'telecom', 'ameacas', true)
+on conflict (track, stage, quadrant) do nothing;
 
 -- A etapa Não Telecom + Ambos começa FECHADA de propósito: só deve abrir
 -- depois que o admin priorizar os itens da etapa Telecom + Ambos (ver
 -- tabela item_prioritized mais abaixo). Abra pelo botão "Votação aberta"
 -- no painel admin, na aba Não Telecom + Ambos, quando estiver pronto.
-insert into voting_config (stage, quadrant, is_open) values
-  ('naotelecom', 'forcas', false),
-  ('naotelecom', 'fraquezas', false),
-  ('naotelecom', 'oportunidades', false),
-  ('naotelecom', 'ameacas', false)
-on conflict (stage, quadrant) do nothing;
+insert into voting_config (track, stage, quadrant, is_open) values
+  ('swot', 'naotelecom', 'forcas', false),
+  ('swot', 'naotelecom', 'fraquezas', false),
+  ('swot', 'naotelecom', 'oportunidades', false),
+  ('swot', 'naotelecom', 'ameacas', false)
+on conflict (track, stage, quadrant) do nothing;
+
+-- Mesma lógica de abertura/fechamento para a trilha Projetos 2027: a etapa
+-- Telecom + Ambos já começa aberta e a etapa Não Telecom + Ambos começa
+-- fechada, até o admin priorizar e abrir manualmente.
+insert into voting_config (track, stage, quadrant, is_open) values
+  ('projetos', 'telecom', 'geral', true),
+  ('projetos', 'naotelecom', 'geral', false)
+on conflict (track, stage, quadrant) do nothing;
 
 -- Ativa a segurança em nível de linha (RLS)
 alter table votes enable row level security;
@@ -117,33 +152,40 @@ create policy "admin pode alterar o status da votacao" on voting_config
   with check (true);
 
 -- ============================================================================
--- Função save_vote_v2: grava o voto já com a etapa. Roda com "security
--- definer" para poder fazer upsert sem exigir permissão de leitura da
--- tabela votes de quem está votando (ver explicação detalhada no script
--- original — o motivo não mudou, só ganhou o parâmetro de etapa).
+-- Função save_vote_v2: grava o voto já com a trilha e a etapa. Roda com
+-- "security definer" para poder fazer upsert sem exigir permissão de
+-- leitura da tabela votes de quem está votando (ver explicação detalhada
+-- no script original — o motivo não mudou, só ganhou o parâmetro de trilha
+-- além do de etapa). A assinatura antiga (sem p_track) é removida: todo
+-- front-end gerado a partir desta versão do schema já chama com p_track.
 -- ============================================================================
-create or replace function public.save_vote_v2(p_stage text, p_quadrant text, p_client_id uuid, p_scores jsonb)
+drop function if exists public.save_vote_v2(text, text, uuid, jsonb);
+
+create or replace function public.save_vote_v2(p_track text, p_stage text, p_quadrant text, p_client_id uuid, p_scores jsonb)
 returns void
 language plpgsql
 security definer
 set search_path = public
 as $$
 begin
+  if p_track not in ('swot','projetos') then
+    raise exception 'trilha invalida: %', p_track;
+  end if;
   if p_stage not in ('telecom','naotelecom') then
     raise exception 'etapa invalida: %', p_stage;
   end if;
-  if p_quadrant not in ('forcas','fraquezas','oportunidades','ameacas') then
+  if p_quadrant not in ('forcas','fraquezas','oportunidades','ameacas','geral') then
     raise exception 'quadrante invalido: %', p_quadrant;
   end if;
-  insert into votes (stage, quadrant, client_id, scores, updated_at)
-  values (p_stage, p_quadrant, p_client_id, p_scores, now())
-  on conflict (stage, quadrant, client_id)
+  insert into votes (track, stage, quadrant, client_id, scores, updated_at)
+  values (p_track, p_stage, p_quadrant, p_client_id, p_scores, now())
+  on conflict (track, stage, quadrant, client_id)
   do update set scores = excluded.scores, updated_at = excluded.updated_at;
 end;
 $$;
 
-revoke all on function public.save_vote_v2(text, text, uuid, jsonb) from public;
-grant execute on function public.save_vote_v2(text, text, uuid, jsonb) to public;
+revoke all on function public.save_vote_v2(text, text, text, uuid, jsonb) from public;
+grant execute on function public.save_vote_v2(text, text, text, uuid, jsonb) to public;
 
 -- Liga o Realtime na tabela de votos, para o painel administrativo
 -- atualizar sozinho conforme os votos chegam.
@@ -158,7 +200,7 @@ begin
 end $$;
 
 -- ============================================================================
--- Tabela de edição rápida dos textos dos itens, agora por (etapa, quadrante).
+-- Tabela de edição rápida dos textos dos itens, agora por (trilha, etapa, quadrante).
 -- ============================================================================
 create table if not exists item_edits (
   stage text not null default 'telecom' check (stage in ('telecom','naotelecom')),
@@ -169,10 +211,16 @@ create table if not exists item_edits (
 );
 alter table item_edits add column if not exists stage text not null default 'telecom';
 update item_edits set stage = 'telecom' where stage is null;
+alter table item_edits add column if not exists track text not null default 'swot';
+update item_edits set track = 'swot' where track is null;
 alter table item_edits drop constraint if exists item_edits_pkey;
-alter table item_edits add constraint item_edits_pkey primary key (stage, quadrant, item_id);
+alter table item_edits add constraint item_edits_pkey primary key (track, stage, quadrant, item_id);
 alter table item_edits drop constraint if exists item_edits_stage_check;
 alter table item_edits add constraint item_edits_stage_check check (stage in ('telecom','naotelecom'));
+alter table item_edits drop constraint if exists item_edits_track_check;
+alter table item_edits add constraint item_edits_track_check check (track in ('swot','projetos'));
+alter table item_edits drop constraint if exists item_edits_quadrant_check;
+alter table item_edits add constraint item_edits_quadrant_check check (quadrant in ('forcas','fraquezas','oportunidades','ameacas','geral'));
 alter table item_edits enable row level security;
 
 drop policy if exists "qualquer pessoa pode ler os textos editados" on item_edits;
@@ -209,10 +257,16 @@ create table if not exists item_added (
 );
 alter table item_added add column if not exists stage text not null default 'telecom';
 update item_added set stage = 'telecom' where stage is null;
+alter table item_added add column if not exists track text not null default 'swot';
+update item_added set track = 'swot' where track is null;
 alter table item_added drop constraint if exists item_added_pkey;
-alter table item_added add constraint item_added_pkey primary key (stage, quadrant, item_id);
+alter table item_added add constraint item_added_pkey primary key (track, stage, quadrant, item_id);
 alter table item_added drop constraint if exists item_added_stage_check;
 alter table item_added add constraint item_added_stage_check check (stage in ('telecom','naotelecom'));
+alter table item_added drop constraint if exists item_added_track_check;
+alter table item_added add constraint item_added_track_check check (track in ('swot','projetos'));
+alter table item_added drop constraint if exists item_added_quadrant_check;
+alter table item_added add constraint item_added_quadrant_check check (quadrant in ('forcas','fraquezas','oportunidades','ameacas','geral'));
 alter table item_added drop constraint if exists item_added_origin_check;
 alter table item_added add constraint item_added_origin_check check (origin in ('Telecom','Ambos','Não Telecom'));
 alter table item_added enable row level security;
@@ -241,10 +295,16 @@ create table if not exists item_removed (
 );
 alter table item_removed add column if not exists stage text not null default 'telecom';
 update item_removed set stage = 'telecom' where stage is null;
+alter table item_removed add column if not exists track text not null default 'swot';
+update item_removed set track = 'swot' where track is null;
 alter table item_removed drop constraint if exists item_removed_pkey;
-alter table item_removed add constraint item_removed_pkey primary key (stage, quadrant, item_id);
+alter table item_removed add constraint item_removed_pkey primary key (track, stage, quadrant, item_id);
 alter table item_removed drop constraint if exists item_removed_stage_check;
 alter table item_removed add constraint item_removed_stage_check check (stage in ('telecom','naotelecom'));
+alter table item_removed drop constraint if exists item_removed_track_check;
+alter table item_removed add constraint item_removed_track_check check (track in ('swot','projetos'));
+alter table item_removed drop constraint if exists item_removed_quadrant_check;
+alter table item_removed add constraint item_removed_quadrant_check check (quadrant in ('forcas','fraquezas','oportunidades','ameacas','geral'));
 alter table item_removed enable row level security;
 
 drop policy if exists "qualquer pessoa pode ler propostas ocultadas" on item_removed;
@@ -272,10 +332,16 @@ create table if not exists rank_overrides (
 );
 alter table rank_overrides add column if not exists stage text not null default 'telecom';
 update rank_overrides set stage = 'telecom' where stage is null;
+alter table rank_overrides add column if not exists track text not null default 'swot';
+update rank_overrides set track = 'swot' where track is null;
 alter table rank_overrides drop constraint if exists rank_overrides_pkey;
-alter table rank_overrides add constraint rank_overrides_pkey primary key (stage, quadrant, item_id);
+alter table rank_overrides add constraint rank_overrides_pkey primary key (track, stage, quadrant, item_id);
 alter table rank_overrides drop constraint if exists rank_overrides_stage_check;
 alter table rank_overrides add constraint rank_overrides_stage_check check (stage in ('telecom','naotelecom'));
+alter table rank_overrides drop constraint if exists rank_overrides_track_check;
+alter table rank_overrides add constraint rank_overrides_track_check check (track in ('swot','projetos'));
+alter table rank_overrides drop constraint if exists rank_overrides_quadrant_check;
+alter table rank_overrides add constraint rank_overrides_quadrant_check check (quadrant in ('forcas','fraquezas','oportunidades','ameacas','geral'));
 alter table rank_overrides enable row level security;
 
 drop policy if exists "admin pode ler ordem do ranking" on rank_overrides;
@@ -321,10 +387,20 @@ create table if not exists item_prioritized (
 );
 alter table item_prioritized add column if not exists stage text not null default 'telecom';
 update item_prioritized set stage = 'telecom' where stage is null;
+-- Coluna "track" adicionada pela mesma migração aditiva que trouxe a
+-- trilha Projetos 2027: toda linha que já existia só podia significar a
+-- trilha SWOT (não havia outra trilha até agora), por isso o default/
+-- backfill é 'swot'.
+alter table item_prioritized add column if not exists track text not null default 'swot';
+update item_prioritized set track = 'swot' where track is null;
 alter table item_prioritized drop constraint if exists item_prioritized_pkey;
-alter table item_prioritized add constraint item_prioritized_pkey primary key (stage, quadrant, item_id);
+alter table item_prioritized add constraint item_prioritized_pkey primary key (track, stage, quadrant, item_id);
 alter table item_prioritized drop constraint if exists item_prioritized_stage_check;
 alter table item_prioritized add constraint item_prioritized_stage_check check (stage in ('telecom','naotelecom'));
+alter table item_prioritized drop constraint if exists item_prioritized_track_check;
+alter table item_prioritized add constraint item_prioritized_track_check check (track in ('swot','projetos'));
+alter table item_prioritized drop constraint if exists item_prioritized_quadrant_check;
+alter table item_prioritized add constraint item_prioritized_quadrant_check check (quadrant in ('forcas','fraquezas','oportunidades','ameacas','geral'));
 alter table item_prioritized enable row level security;
 
 drop policy if exists "qualquer pessoa pode ler priorizacao" on item_prioritized;
@@ -349,4 +425,12 @@ create policy "admin pode despriorizar itens" on item_prioritized
 -- where tablename in ('votes','voting_config','item_edits','item_added','item_removed','rank_overrides','item_prioritized')
 -- order by tablename, policyname;
 --
+-- select track, stage, quadrant, count(*) from votes group by 1,2,3 order by 1,2,3;
+-- select track, stage, quadrant, is_open from voting_config order by 1,2,3;
+--
+-- Nota sobre as policies de RLS acima: todas já usam using(true)/with
+-- check(true) (nenhuma tem WHERE/condição amarrada a um valor fixo de
+-- stage ou quadrant), então continuam válidas sem alteração alguma mesmo
+-- depois de todas as tabelas ganharem a coluna "track" — elas nunca
+-- restringiam por coluna, só por papel (anon/authenticated).
 -- select stage, quadrant, count(*) from votes group by 1,2 order by 1,2;
