@@ -187,6 +187,34 @@ details.orig .reason{margin-top:6px; font-size:12.5px; color:var(--ink-soft); fo
 
 .migrated-heading{ margin:26px 0 12px; font-size:14px; font-weight:700; color:var(--ink-soft); padding-top:14px; border-top:1px dashed var(--line); }
 
+
+/* Matriz esforço x impacto (trilha Projetos) */
+.mx-help-list{margin:0 0 4px; padding-left:20px; font-size:13.5px; line-height:1.5;} .mx-help-list li{margin-bottom:4px;}
+.mx-wrap{margin:14px 0 0 40px; max-width:620px;}
+.mx-title{font-size:13px; font-weight:700; color:var(--ink); margin-bottom:2px;}
+.mx-sub{font-size:12px; color:var(--ink-soft); margin-bottom:8px; line-height:1.35;}
+.mx-grid{display:grid; grid-template-columns:22px 1fr 1fr; gap:6px;}
+.mx-ylab{grid-column:1; grid-row:1 / span 2; writing-mode:vertical-rl; transform:rotate(180deg); text-align:center; font-size:11px; font-weight:700; color:var(--ink-soft); letter-spacing:.02em;}
+.mx-cell{border:1.5px solid var(--line); border-left-width:6px; border-radius:10px; padding:9px 11px; cursor:pointer; background:var(--surface); text-align:left; transition:.12s; font-family:inherit; color:inherit;}
+.mx-cell:hover{border-color:var(--accent);}
+.mx-cell .mx-name{display:block; font-weight:700; font-size:13.5px; color:var(--ink);}
+.mx-cell .mx-ax{display:block; font-size:11.5px; font-weight:600; color:var(--ink-soft); margin-top:1px;}
+.mx-cell .mx-do{display:block; font-size:11.5px; color:var(--ink-soft); margin-top:4px; line-height:1.3; font-weight:400;}
+.mx-cell[data-q="qw"]{border-left-color:#00b554;} .mx-cell[data-q="gp"]{border-left-color:#14548c;}
+.mx-cell[data-q="pr"]{border-left-color:#7a8699;} .mx-cell[data-q="ti"]{border-left-color:#d14343;}
+.mx-cell.sel{background:var(--accent); border-color:var(--accent);}
+.mx-cell.sel .mx-name,.mx-cell.sel .mx-ax,.mx-cell.sel .mx-do{color:#fff;}
+.mx-xlab{grid-column:2 / span 2; display:flex; justify-content:space-between; font-size:11px; font-weight:700; color:var(--ink-soft);}
+.mx-board{display:grid; grid-template-columns:22px 1fr 1fr; gap:8px; margin:6px 0 18px;}
+.mx-box{border:1.5px solid var(--line); border-left-width:6px; border-radius:10px; padding:10px 12px; background:var(--surface); min-height:90px;}
+.mx-box h4{margin:0 0 2px; font-size:14px; color:var(--ink);} .mx-box .mx-ax{font-size:11.5px; color:var(--ink-soft); font-weight:600;}
+.mx-box ul{margin:8px 0 0; padding-left:18px; font-size:13px; line-height:1.4;} .mx-box li{margin-bottom:3px;} .mx-box li .mx-n{color:var(--ink-soft); font-size:11.5px; white-space:nowrap;}
+.mx-box .mx-empty{font-size:12px; color:var(--ink-soft); margin-top:8px; font-style:italic;}
+.mx-dist{display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; font-size:12px;}
+.mx-dist span{border:1px solid var(--line); border-radius:999px; padding:2px 9px; background:var(--surface);}
+.mx-dist span b{font-weight:700;}
+@media (max-width:640px){ .mx-wrap{margin-left:0;} }
+
 .vote-row{display:flex; gap:8px; margin:12px 0 0 40px; flex-wrap:wrap;}
 .vote-btn{ flex:1; min-width:140px; border:1.5px solid var(--line); background:var(--surface); border-radius:10px; padding:9px 12px; cursor:pointer; text-align:left; display:flex; align-items:center; gap:9px; transition:.12s; }
 .vote-btn .vnum{ font-family:"Ubuntu Mono",monospace; font-weight:700; font-size:14px; width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; flex:none; }
@@ -452,6 +480,16 @@ footer.pagefoot{ background:var(--surface); border-top:1px solid var(--line); ma
         <div class="scale-row s3"><div class="scale-num">3</div><p><b>Concordo parcialmente</b> &mdash; este item &eacute; relevante, mas n&atilde;o priorit&aacute;rio.</p></div>
         <div class="scale-row s1"><div class="scale-num">1</div><p><b>Discordo</b> &mdash; este item n&atilde;o deve ser priorizado.</p></div>
       </div>
+      <div id="mx-help" class="mx-help" style="display:none;">
+        <p style="font-size:14.5px; margin:14px 0 8px; font-weight:500;">Al&eacute;m disso, <b>para cada projeto</b>, marque em qual quadrante da <b>matriz esfor&ccedil;o &times; impacto</b> ele se encaixa:</p>
+        <ul class="mx-help-list">
+          <li><b style="color:#00b554">Vit&oacute;rias r&aacute;pidas</b> (baixo esfor&ccedil;o &times; alto impacto) &mdash; prioridade m&aacute;xima: grande retorno com pouco recurso. Executar primeiro.</li>
+          <li><b style="color:#14548c">Grandes projetos</b> (alto esfor&ccedil;o &times; alto impacto) &mdash; planejar com cuidado: alto valor, mas exige tempo, dinheiro e equipe. Quebrar em etapas menores.</li>
+          <li><b style="color:#7a8699">Preenchimentos</b> (baixo esfor&ccedil;o &times; baixo impacto) &mdash; fazer quando poss&iacute;vel, automatizar ou delegar. N&atilde;o gastar energia excessiva.</li>
+          <li><b style="color:#d14343">Tarefas ingratas</b> (alto esfor&ccedil;o &times; baixo impacto) &mdash; evitar, adiar ou cancelar: muito recurso para pouco resultado.</li>
+        </ul>
+        <p style="font-size:12.5px; color:var(--ink-soft); margin:6px 0 0;">Esfor&ccedil;o = tempo, custo e equipe necess&aacute;rios. Impacto = retorno esperado para a RV. As duas respostas (concord&acirc;ncia e matriz) s&atilde;o necess&aacute;rias para salvar.</p>
+      </div>
       <div class="anon-note"><span class="ic">&#128274;</span>Sua vota&ccedil;&atilde;o &eacute; an&ocirc;nima: ningu&eacute;m vê quem votou o qu&ecirc; &mdash; apenas os totais agregados, e somente para os administradores autorizados. N&atilde;o &eacute; necess&aacute;rio fazer login.</div>
       <div class="anon-note" style="background:var(--surface-2);"><span class="ic">&#128190;</span>V&aacute; marcando suas respostas normalmente. Nada &eacute; enviado ainda &mdash; s&oacute; quando voc&ecirc; clicar em <b>"Salvar respostas"</b>, no final da p&aacute;gina, é que elas s&atilde;o gravadas. N&atilde;o atualize a p&aacute;gina antes de salvar, ou as marca&ccedil;&otilde;es ainda n&atilde;o salvas ser&atilde;o perdidas.</div>
       <div id="already-voted-note" class="already-voted-note" style="display:none;"></div>
@@ -595,6 +633,18 @@ function getClientId(){
 var myId = getClientId();
 var myVotes = {};
 var savedVotes = {};
+var myMatrix = {};
+var savedMatrix = {};
+var HAS_MX = (TRACK === "projetos");
+(function(){ var h = document.getElementById("mx-help"); if(h && HAS_MX) h.style.display = "block"; })();
+var MX = [
+  {code:"qw", name:"Vitórias rápidas", axes:"Baixo esforço × Alto impacto", todo:"Prioridade máxima: grande retorno com pouco recurso. Executar primeiro.", color:"#00b554"},
+  {code:"gp", name:"Grandes projetos", axes:"Alto esforço × Alto impacto", todo:"Planejar com cuidado: alto valor, mas exige tempo, dinheiro e equipe. Quebrar em etapas menores.", color:"#14548c"},
+  {code:"pr", name:"Preenchimentos", axes:"Baixo esforço × Baixo impacto", todo:"Fazer quando possível, automatizar ou delegar. Não gastar energia excessiva.", color:"#7a8699"},
+  {code:"ti", name:"Tarefas ingratas", axes:"Alto esforço × Baixo impacto", todo:"Evitar, adiar ou cancelar: muito recurso para pouco resultado.", color:"#d14343"}
+];
+var MX_BY = {}; MX.forEach(function(m){ MX_BY[m.code] = m; });
+
 var votingOpen = true, saving = false;
 var currentFilter = "all";
 
@@ -637,7 +687,7 @@ function updateHeroSub(){
   var sub = document.getElementById("hero-sub");
   if(!sub) return;
   sub.textContent = (TRACK === "projetos")
-    ? ("Votação anônima. Esta votação reúne os " + ITEMS.length + " projetos propostos para 2027 nesta etapa.")
+    ? ("Votação anônima. Esta votação reúne os " + ITEMS.length + " projetos propostos para 2027 nesta etapa. Para cada projeto, indique se concorda com ele e em qual quadrante da matriz esforço × impacto ele se encaixa — as duas respostas são necessárias para salvar.")
     : ("Votação anônima. Esta votação é exclusiva do quadrante " + qmeta.label.toLowerCase() + " (" + ITEMS.length + " itens).");
 }
 
@@ -770,8 +820,21 @@ function renderItem(it, idx){
     +   voteBtn(it.id,3,"Concordo parcialmente")
     +   voteBtn(it.id,1,"Discordo")
     + '</div>'
+    + (HAS_MX ? matrixBlock(it.id) : '')
     + '<div class="save-tag" id="save-'+it.id+'"><span class="save-tag-pending">&#9679; Selecionado &mdash; ainda n&atilde;o salvo</span><span class="save-tag-saved">&#10003; Salvo</span></div>'
     + '</div>';
+}
+function matrixBlock(itemId){
+  function cell(code){
+    var m = MX_BY[code];
+    return '<button type="button" class="mx-cell" data-q="'+code+'" onclick="castMatrix(\''+itemId+'\',\''+code+'\')">'
+      + '<span class="mx-name">'+m.name+'</span><span class="mx-ax">'+m.axes+'</span><span class="mx-do">'+m.todo+'</span></button>';
+  }
+  return '<div class="mx-wrap"><div class="mx-title">Matriz esforço × impacto</div>'
+    + '<div class="mx-sub">Em qual quadrante este projeto se encaixa? Considere o esforço (tempo, custo e equipe) e o impacto esperado para a RV.</div>'
+    + '<div class="mx-grid"><div class="mx-ylab">IMPACTO &nbsp;(baixo &rarr; alto)</div>'
+    + cell("qw") + cell("gp") + cell("pr") + cell("ti")
+    + '<div class="mx-xlab"><span>&larr; Baixo esforço</span><span>Alto esforço &rarr;</span></div></div></div>';
 }
 function voteBtn(itemId, score, label){
   return '<button class="vote-btn" data-score="'+score+'" onclick="castVote(\''+itemId+'\','+score+')">'
@@ -779,11 +842,13 @@ function voteBtn(itemId, score, label){
     + '</button>';
 }
 
-function isDirty(itemId){ return myVotes[itemId] !== savedVotes[itemId]; }
+function isDirty(itemId){ return myVotes[itemId] !== savedVotes[itemId] || (HAS_MX && myMatrix[itemId] !== savedMatrix[itemId]); }
+function isDone(itemId){ return myVotes[itemId] !== undefined && (!HAS_MX || myMatrix[itemId] !== undefined); }
+function countDone(){ var n=0; ITEMS.forEach(function(it){ if(isDone(it.id)) n++; }); return n; }
 function countDirty(){ var n=0; ITEMS.forEach(function(it){ if(isDirty(it.id)) n++; }); return n; }
 
 function updateProgress(){
-  var voted = Object.keys(myVotes).length;
+  var voted = countDone();
   document.getElementById("progress-fill").style.width = (ITEMS.length ? Math.round(voted/ITEMS.length*100) : 0) + "%";
   document.getElementById("progress-text").textContent = voted + " de " + ITEMS.length + " respondidos";
   document.getElementById("vote-status-text").textContent = votingOpen ? "" : "Votação encerrada pelo administrador";
@@ -793,7 +858,13 @@ function paintMyVotes(){
     var card = document.getElementById("item-"+it.id);
     if(!card) return;
     var score = myVotes[it.id];
-    card.classList.toggle("voted", score !== undefined);
+    card.classList.toggle("voted", isDone(it.id));
+    card.querySelectorAll(".mx-cell").forEach(function(b){
+      b.classList.toggle("sel", myMatrix[it.id] === b.getAttribute("data-q"));
+      b.disabled = !votingOpen;
+      b.style.opacity = votingOpen ? "1" : ".55";
+      b.style.cursor = votingOpen ? "pointer" : "not-allowed";
+    });
     card.querySelectorAll(".vote-btn").forEach(function(b){
       b.classList.toggle("sel", score !== undefined && String(score) === b.getAttribute("data-score"));
       b.disabled = !votingOpen;
@@ -801,18 +872,18 @@ function paintMyVotes(){
       b.style.cursor = votingOpen ? "pointer" : "not-allowed";
     });
     var tag = document.getElementById("save-"+it.id);
-    if(tag){ tag.dataset.state = score === undefined ? "" : (isDirty(it.id) ? "pending" : "saved"); }
+    if(tag){ tag.dataset.state = (score === undefined && myMatrix[it.id] === undefined) ? "" : (isDirty(it.id) ? "pending" : "saved"); }
   });
   updateProgress();
   updateSaveBar();
 }
-function allAnswered(){ return ITEMS.length > 0 && Object.keys(myVotes).length === ITEMS.length; }
+function allAnswered(){ return ITEMS.length > 0 && countDone() === ITEMS.length; }
 function updateSaveBar(){
   var text = document.getElementById("save-bar-text");
   var btn = document.getElementById("save-btn");
   if(!text || !btn) return;
   var dirty = countDirty();
-  var answered = Object.keys(myVotes).length;
+  var answered = countDone();
   var missing = ITEMS.length - answered;
   if(saving){
     text.textContent = "Salvando suas respostas…";
@@ -851,6 +922,11 @@ function castVote(itemId, score){
   myVotes[itemId] = score;
   paintMyVotes();
 }
+function castMatrix(itemId, code){
+  if(!votingOpen || saving) return;
+  myMatrix[itemId] = code;
+  paintMyVotes();
+}
 
 function showAlreadyVotedNoteIfAny(){
   try{
@@ -868,6 +944,13 @@ function markVotedInLocalStorage(){
   try{ localStorage.setItem("rv_voted_" + TRACK + "_" + STAGE + "_" + QUAD, new Date().toISOString()); }catch(e){}
 }
 
+function payloadScores(){
+  // Notas (item_id -> 5/3/1) + escolhas da matriz esforço x impacto
+  // (chave "m:<item_id>" -> qw/gp/pr/ti), tudo no mesmo registro do voto.
+  var p = Object.assign({}, myVotes);
+  if(HAS_MX){ Object.keys(myMatrix).forEach(function(id){ p["m:" + id] = myMatrix[id]; }); }
+  return p;
+}
 async function saveAllVotes(){
   if(!votingOpen || saving) return;
   if(!sb){
@@ -875,7 +958,7 @@ async function saveAllVotes(){
     return;
   }
   if(!allAnswered()){
-    var missing = ITEMS.length - Object.keys(myVotes).length;
+    var missing = ITEMS.length - countDone();
     showFlash("Responda todos os " + ITEMS.length + " itens antes de salvar (faltam " + missing + ").", true);
     return;
   }
@@ -884,9 +967,10 @@ async function saveAllVotes(){
   try{
     // Grava o voto chamando a função save_vote_v2 (ver schema.sql), já com a
     // etapa (stage) — substitui a antiga save_vote de etapa única.
-    var res = await sb.rpc("save_vote_v2", { p_track: TRACK, p_stage: STAGE, p_quadrant: QUAD, p_client_id: myId, p_scores: Object.assign({}, myVotes) });
+    var res = await sb.rpc("save_vote_v2", { p_track: TRACK, p_stage: STAGE, p_quadrant: QUAD, p_client_id: myId, p_scores: payloadScores() });
     if(res.error) throw res.error;
     savedVotes = Object.assign({}, myVotes);
+    savedMatrix = Object.assign({}, myMatrix);
     saving = false; paintMyVotes();
     markVotedInLocalStorage();
     showFlash("Respostas salvas com sucesso — registradas anonimamente.", false);

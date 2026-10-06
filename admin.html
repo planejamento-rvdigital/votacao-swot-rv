@@ -187,6 +187,34 @@ details.orig .reason{margin-top:6px; font-size:12.5px; color:var(--ink-soft); fo
 
 .migrated-heading{ margin:26px 0 12px; font-size:14px; font-weight:700; color:var(--ink-soft); padding-top:14px; border-top:1px dashed var(--line); }
 
+
+/* Matriz esforço x impacto (trilha Projetos) */
+.mx-help-list{margin:0 0 4px; padding-left:20px; font-size:13.5px; line-height:1.5;} .mx-help-list li{margin-bottom:4px;}
+.mx-wrap{margin:14px 0 0 40px; max-width:620px;}
+.mx-title{font-size:13px; font-weight:700; color:var(--ink); margin-bottom:2px;}
+.mx-sub{font-size:12px; color:var(--ink-soft); margin-bottom:8px; line-height:1.35;}
+.mx-grid{display:grid; grid-template-columns:22px 1fr 1fr; gap:6px;}
+.mx-ylab{grid-column:1; grid-row:1 / span 2; writing-mode:vertical-rl; transform:rotate(180deg); text-align:center; font-size:11px; font-weight:700; color:var(--ink-soft); letter-spacing:.02em;}
+.mx-cell{border:1.5px solid var(--line); border-left-width:6px; border-radius:10px; padding:9px 11px; cursor:pointer; background:var(--surface); text-align:left; transition:.12s; font-family:inherit; color:inherit;}
+.mx-cell:hover{border-color:var(--accent);}
+.mx-cell .mx-name{display:block; font-weight:700; font-size:13.5px; color:var(--ink);}
+.mx-cell .mx-ax{display:block; font-size:11.5px; font-weight:600; color:var(--ink-soft); margin-top:1px;}
+.mx-cell .mx-do{display:block; font-size:11.5px; color:var(--ink-soft); margin-top:4px; line-height:1.3; font-weight:400;}
+.mx-cell[data-q="qw"]{border-left-color:#00b554;} .mx-cell[data-q="gp"]{border-left-color:#14548c;}
+.mx-cell[data-q="pr"]{border-left-color:#7a8699;} .mx-cell[data-q="ti"]{border-left-color:#d14343;}
+.mx-cell.sel{background:var(--accent); border-color:var(--accent);}
+.mx-cell.sel .mx-name,.mx-cell.sel .mx-ax,.mx-cell.sel .mx-do{color:#fff;}
+.mx-xlab{grid-column:2 / span 2; display:flex; justify-content:space-between; font-size:11px; font-weight:700; color:var(--ink-soft);}
+.mx-board{display:grid; grid-template-columns:22px 1fr 1fr; gap:8px; margin:6px 0 18px;}
+.mx-box{border:1.5px solid var(--line); border-left-width:6px; border-radius:10px; padding:10px 12px; background:var(--surface); min-height:90px;}
+.mx-box h4{margin:0 0 2px; font-size:14px; color:var(--ink);} .mx-box .mx-ax{font-size:11.5px; color:var(--ink-soft); font-weight:600;}
+.mx-box ul{margin:8px 0 0; padding-left:18px; font-size:13px; line-height:1.4;} .mx-box li{margin-bottom:3px;} .mx-box li .mx-n{color:var(--ink-soft); font-size:11.5px; white-space:nowrap;}
+.mx-box .mx-empty{font-size:12px; color:var(--ink-soft); margin-top:8px; font-style:italic;}
+.mx-dist{display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; font-size:12px;}
+.mx-dist span{border:1px solid var(--line); border-radius:999px; padding:2px 9px; background:var(--surface);}
+.mx-dist span b{font-weight:700;}
+@media (max-width:640px){ .mx-wrap{margin-left:0;} }
+
 .vote-row{display:flex; gap:8px; margin:12px 0 0 40px; flex-wrap:wrap;}
 .vote-btn{ flex:1; min-width:140px; border:1.5px solid var(--line); background:var(--surface); border-radius:10px; padding:9px 12px; cursor:pointer; text-align:left; display:flex; align-items:center; gap:9px; transition:.12s; }
 .vote-btn .vnum{ font-family:"Ubuntu Mono",monospace; font-weight:700; font-size:14px; width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; flex:none; }
@@ -1159,6 +1187,56 @@ function computeAgg(quad){
   return agg;
 }
 
+var MX = [
+  {code:"qw", name:"Vitórias rápidas", axes:"Baixo esforço × Alto impacto", todo:"Prioridade máxima: grande retorno com pouco recurso. Executar primeiro.", color:"#00b554"},
+  {code:"gp", name:"Grandes projetos", axes:"Alto esforço × Alto impacto", todo:"Planejar com cuidado: alto valor, mas exige tempo, dinheiro e equipe. Quebrar em etapas menores.", color:"#14548c"},
+  {code:"pr", name:"Preenchimentos", axes:"Baixo esforço × Baixo impacto", todo:"Fazer quando possível, automatizar ou delegar. Não gastar energia excessiva.", color:"#7a8699"},
+  {code:"ti", name:"Tarefas ingratas", axes:"Alto esforço × Baixo impacto", todo:"Evitar, adiar ou cancelar: muito recurso para pouco resultado.", color:"#d14343"}
+];
+var MX_BY = {}; MX.forEach(function(m){ MX_BY[m.code] = m; });
+function computeMatrix(quad){
+  var items = ALL_ITEMS[quad] || [];
+  var m = {};
+  items.forEach(function(it){ m[it.id] = {qw:0, gp:0, pr:0, ti:0, total:0}; });
+  (rowsByQuad[quad] || []).forEach(function(scores){
+    Object.keys(scores || {}).forEach(function(k){
+      if(k.indexOf("m:") !== 0) return;
+      var id = k.slice(2), c = scores[k];
+      if(m[id] && m[id][c] !== undefined && c !== "total"){ m[id][c]++; m[id].total++; }
+    });
+  });
+  return m;
+}
+function mxLeaders(c){
+  var best = 0, codes = [];
+  MX.forEach(function(q){ if(c[q.code] > best){ best = c[q.code]; codes = [q.code]; } else if(c[q.code] === best && best > 0){ codes.push(q.code); } });
+  return codes;
+}
+function renderMatrixBoard(quad){
+  var items = ALL_ITEMS[quad] || [];
+  var mx = computeMatrix(quad);
+  var any = items.some(function(it){ return mx[it.id] && mx[it.id].total > 0; });
+  var lists = {qw:[], gp:[], pr:[], ti:[]};
+  items.forEach(function(it){
+    var c = mx[it.id]; if(!c || !c.total) return;
+    var lead = mxLeaders(c);
+    lead.forEach(function(code){ lists[code].push({it:it, n:c[code], total:c.total, tie: lead.length > 1}); });
+  });
+  function box(code){
+    var q = MX_BY[code];
+    var li = lists[code].sort(function(a,b){ return b.n/b.total - a.n/a.total; }).map(function(x){
+      return '<li>'+escapeHtml(x.it.title)+' <span class="mx-n">('+x.n+' de '+x.total+' votos'+(x.tie ? ', empate' : '')+')</span></li>';
+    }).join("");
+    return '<div class="mx-box" style="border-left-color:'+q.color+'"><h4>'+q.name+'</h4><div class="mx-ax">'+q.axes+'</div>'
+      + (li ? '<ul>'+li+'</ul>' : '<div class="mx-empty">Nenhum projeto neste quadrante ainda.</div>') + '</div>';
+  }
+  return '<div class="top5-wrap"><div class="top5-head"><h3>&#9638; Matriz esfor&ccedil;o &times; impacto &mdash; quadrante mais votado de cada projeto</h3></div>'
+    + (any ? '' : '<div class="empty-note">Ainda sem respostas da matriz.</div>')
+    + '<div class="mx-board"><div class="mx-ylab">IMPACTO &nbsp;(baixo &rarr; alto)</div>'
+    + box("qw") + box("gp") + box("pr") + box("ti")
+    + '<div class="mx-xlab"><span>&larr; Baixo esforço</span><span>Alto esforço &rarr;</span></div></div></div>';
+}
+
 function computeTopWithTies(quad, n){
   var items = ALL_ITEMS[quad] || [];
   var agg = computeAgg(quad);
@@ -1363,6 +1441,14 @@ function renderConsolidationView(){
   mount.innerHTML = html;
 }
 
+function mxDistHtml(c){
+  if(!c) return "";
+  var lead = mxLeaders(c);
+  return '<div class="mx-dist"><span><b>Matriz:</b></span>' + MX.map(function(q){
+    var on = lead.indexOf(q.code) !== -1;
+    return '<span style="'+(on ? 'border-color:'+q.color+'; background:'+q.color+'; color:#fff;' : '')+'">'+q.name+': <b>'+c[q.code]+'</b></span>';
+  }).join("") + '<span><b>'+c.total+'</b> respostas</span></div>';
+}
 function renderResultsView(){
   var mount = document.getElementById("admin-mount");
   var items = (ALL_ITEMS[currentQuad] || []).slice();
@@ -1391,6 +1477,8 @@ function renderResultsView(){
       + ' (<b>'+ambosPrioCount+'</b> com tag Ambos &mdash; ser'+(ambosPrioCount===1?"á":"ão")+' migrado'+(ambosPrioCount===1?"":"s")+' para N&atilde;o Telecom + Ambos).</div>';
   }
   html += '<div class="top5-wrap">'+renderTopNTable(currentQuad, true)+'</div>';
+  var mxAll = null;
+  if(currentTrack === "projetos"){ html += renderMatrixBoard(currentQuad); mxAll = computeMatrix(currentQuad); }
   items.forEach(function(it){
     var a = agg[it.id];
     var avg = a.total ? (a.sum/a.total) : null;
@@ -1434,6 +1522,7 @@ function renderResultsView(){
       + descBlockA + objBlockA + detailsA
       + '<div class="bars"><div class="bar-5" style="width:'+pct5+'%"></div><div class="bar-3" style="width:'+pct3+'%"></div><div class="bar-1" style="width:'+pct1+'%"></div></div>'
       + '<div class="bar-legend"><span><b>'+a.c5+'</b> concordam totalmente</span><span><b>'+a.c3+'</b> concordam parcialmente</span><span><b>'+a.c1+'</b> discordam</span><span><b>'+a.total+'</b> votos</span></div>'
+      + (mxAll ? mxDistHtml(mxAll[it.id]) : '')
       + '</div>';
   });
   mount.innerHTML = html;
