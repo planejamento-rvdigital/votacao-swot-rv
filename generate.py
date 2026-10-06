@@ -173,6 +173,9 @@ main{max-width:900px; margin:0 auto; padding:26px 20px 90px;}
 .item-title{font-size:16.5px; font-weight:500; flex:1;}
 .item-meta{display:flex; gap:6px; flex-wrap:wrap; margin:8px 0 0 40px;}
 .item-desc{margin:10px 0 0 40px; font-size:13.5px; color:var(--ink-soft); line-height:1.55;}
+.desc-flag{display:inline-block; font-size:11.5px; font-weight:700; padding:2px 8px; margin-right:6px; border-radius:999px; background:var(--accent-soft); color:var(--link); border:1px solid var(--line); vertical-align:1px;}
+.edit-item .edit-desc-label{display:block; font-size:12px; font-weight:700; color:var(--ink-soft); margin:10px 0 4px;}
+.edit-item .edit-desc-input{width:100%; box-sizing:border-box; font:inherit; font-size:13.5px; line-height:1.5; padding:8px 10px; border:1px solid var(--line); border-radius:10px; background:var(--surface); color:var(--ink); resize:vertical;}
 .item-objetivo{margin:8px 0 0 40px; font-size:12.5px; color:var(--link); line-height:1.5;}
 .item-objetivo b{color:var(--ink-soft);}
 .chip{ font-size:12px; padding:3px 9px; border-radius:999px; border:1px solid var(--line); color:var(--ink-soft); background:var(--surface-2); font-weight:500; }
@@ -480,8 +483,8 @@ def build_items(convergences, solos, qkey):
 # Projetos_2027_Consolidado.xlsx (fonte somente-leitura desta sessão) com
 # openpyxl, no momento da geração — nunca transcritos à mão, para não
 # arriscar erro de digitação. Monta a lista plana (sem subdivisão de
-# quadrante) dos 20 projetos votáveis de 2027: 14 propostas isoladas (linhas
-# da aba "Projetos 2027" sem "Convergência" preenchida) + 6 propostas
+# quadrante) dos 25 projetos votáveis de 2027: 17 propostas isoladas (linhas
+# da aba "Projetos 2027" sem "Convergência" preenchida) + 8 propostas
 # consolidadas (uma por grupo da aba "Convergências", usando a descrição
 # sugerida, a tag recomendada e a lista de membros originais como
 # "originals"/"reason", no mesmo formato dos itens "convergencia" do SWOT).
@@ -500,7 +503,7 @@ def _clean_projeto_comment(s):
 def _short_division(d):
     if not d:
         return d
-    return str(d).replace("Diretoria de ", "").strip()
+    return re.sub(r"^Diretoria( de)? ", "", str(d)).strip()
 
 def build_projeto_items():
     wb = openpyxl.load_workbook(PROJETOS_XLSX_PATH, data_only=True)
@@ -515,7 +518,7 @@ def build_projeto_items():
 
     items = []
 
-    # ---- 6 propostas consolidadas (type "convergencia") --------------------
+    # ---- 8 propostas consolidadas (type "convergencia") --------------------
     conv_rows_sorted = sorted(conv_rows, key=lambda g: g["Convergência"])
     for i, g in enumerate(conv_rows_sorted, start=1):
         tagobj = g.get("Objetivo / Tag recomendados") or ""
@@ -550,11 +553,20 @@ def build_projeto_items():
             "originals": originals,
             "reason": (g.get("Racional da convergência") or "").strip(),
             "description": (g.get("Descrição sugerida (projeto consolidado)") or "").strip(),
+            "desc_label": "Descrição sugerida (projeto consolidado)",
         })
 
-    # ---- 14 propostas isoladas (type "isolada") -----------------------------
+    # ---- 17 propostas isoladas (type "isolada") -----------------------------
+    # A coluna "Convergência" do xlsx fica em branco OU com o rótulo explícito
+    # "— Projeto individual (não será unificado)" (ver INDIVIDUAL_LABEL em
+    # projetos_2027/build.py) para os projetos que não convergem com nenhum
+    # outro — tratamos as duas formas como "sem convergência" aqui.
+    def _is_standalone(conv_val):
+        if not conv_val:
+            return True
+        return str(conv_val).strip().startswith("— Projeto individual")
     standalone_sorted = sorted(
-        [r for r in proj_rows if not r.get("Convergência")],
+        [r for r in proj_rows if _is_standalone(r.get("Convergência"))],
         key=lambda r: r["Nome do projeto"]
     )
     for i, r in enumerate(standalone_sorted, start=1):
@@ -572,6 +584,8 @@ def build_projeto_items():
             "originals": None,
             "reason": None,
             "description": _clean_projeto_comment(r.get("Comentário")),
+            "desc_label": ("Sem descrição original — Descrição sugerida"
+                           if str(r.get("Descrição gerada automaticamente") or "").strip().startswith("Sim") else ""),
         })
 
     return items
@@ -762,7 +776,6 @@ SOLOS_TELECOM = {
     ["Força de vendas com atendimento presencial","Operações","Ambos"]
   ],
   "fraquezas": [
-    ["Concentração do resultado nos produtos telecom","Operações","Telecom"],
     ["Pouca interação com o cliente do Cliente","Operações","Telecom"],
     ["Ausência de auditoria presencial periódica dos estoques nas regionais","Financeira","Ambos"],
     ["Fragmentação dos sistemas e pouca diversificação dos canais de atendimento","Marketing","Ambos"],
@@ -830,6 +843,11 @@ CONVERGENCES_NTELECOM = {
        ["Falta de um processo logístico para entrega de produtos físicos (acessórios, outros)","Operações","Não Telecom"],
        ["Falta de um sistema de gestão (back office e front office) especializado em produtos físicos (não telecom)","Operações","Não Telecom"]
      ]},
+    {"title":"Dependência do resultado em um único produto (chip)", "reason":"Duas propostas, de duas diretorias, apontam a mesma fragilidade: a concentração do resultado da RV em um único produto, o chip.",
+     "originals":[
+       ["Concentração do resultado em um produto único (chip)","Marketing","Não Telecom"],
+       ["Dependência em um único produto (chip)","Operações","Não Telecom"]
+     ]},
   ],
   "oportunidades": [
     {"title":"Abertura e expansão do mercado de energia (baixa tensão e modelo white label)", "reason":"Duas propostas, de duas diretorias, tratam da mesma oportunidade: a abertura do mercado livre de energia, seja pela migração para baixa tensão, seja por parcerias no modelo white label com geradoras.",
@@ -878,8 +896,6 @@ SOLOS_NTELECOM = {
     ["Portfólio diversificado de produtos","Operações","Não Telecom"]
   ],
   "fraquezas": [
-    ["Concentração do resultado em um produto único (chip)","Marketing","Não Telecom"],
-    ["Ausência de equipe especializada para venda de adquirência, serviços financeiros etc","Operações","Não Telecom"],
     ["Fragilidade cadastral / falta de CRM","Operações","Não Telecom"],
     ["Falta de plataforma segura/estável conversacional para Whatsapp/Atendimento via IA","Operações","Não Telecom"],
     ["Falta de uma oferta proprietária da RV de produtos financeiros (maquininha, conta, empréstimos, softwares etc)","Operações","Não Telecom"]
@@ -915,6 +931,44 @@ ITEMS = {
     "naotelecom": {"geral": [it for it in PROJETOS_ITEMS if it["tag"] == "Não Telecom"]},
   },
 }
+
+
+# ============================================================================
+# IDs ESTÁVEIS — o site já está em uso: os ids dos itens que não mudaram são
+# mantidos exatamente como estavam (legacy_ids.json = foto dos ids anteriores
+# a 06/10/2026). Itens novos ou que mudaram de natureza (ex.: proposta isolada
+# que virou convergência) recebem id novo, nunca reaproveitando um id antigo,
+# para que votos já gravados não sejam atribuídos ao item errado.
+# ============================================================================
+import json as _json, os as _os
+_LEG_PATH = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "legacy_ids.json")
+if _os.path.exists(_LEG_PATH):
+    _LEG = _json.load(open(_LEG_PATH, encoding="utf-8"))
+    _maxn = {}
+    for _v in _LEG.values():
+        _pref, _num = re.match(r"^(.*?)(\d+)$", _v).groups()
+        _maxn[_pref] = max(_maxn.get(_pref, 0), int(_num))
+    for _tr in ITEMS:
+        for _st in ITEMS[_tr]:
+            for _q, _lst in ITEMS[_tr][_st].items():
+                _fresh = []
+                for _it in _lst:
+                    _old = _LEG.get(f"{_tr}|{_st}|{_q}|{_it['title']}")
+                    _kind = "_c" if _it["type"] == "convergencia" else "_s"
+                    if _old and re.search(_kind + r"\d+$", _old):
+                        _it["id"] = _old
+                    else:
+                        _fresh.append(_it)
+                for _it in _fresh:
+                    _kind = "_c" if _it["type"] == "convergencia" else "_s"
+                    _pref = ("proj" if _tr == "projetos" else _q) + _kind
+                    _maxn[_pref] = _maxn.get(_pref, 0) + 1
+                    _it["id"] = _pref + str(_maxn[_pref])
+    for _tr in ITEMS:
+        for _st in ITEMS[_tr]:
+            for _q, _lst in ITEMS[_tr][_st].items():
+                _ids = [x["id"] for x in _lst]
+                assert len(_ids) == len(set(_ids)), ("id duplicado", _tr, _st, _q)
 
 # ============================================================================
 # VOTE_TEMPLATE — página única de votação, parametrizada por ?stage=&quad=
@@ -1258,7 +1312,8 @@ function renderItem(it, idx){
   // substantivas e quem vota precisa desse contexto para julgá-las; o SWOT
   // não tem esse campo (seus itens são só o título curto). O Objetivo 2027
   // ao qual o projeto está atrelado também aparece direto no card.
-  var descBlock = it.description ? '<p class="item-desc">'+escapeHtml(it.description)+'</p>' : "";
+  var descFlag = it.desc_label ? '<span class="desc-flag">'+escapeHtml(it.desc_label)+'</span>' : "";
+  var descBlock = it.description ? '<p class="item-desc">'+descFlag+escapeHtml(it.description)+'</p>' : "";
   var objBlock = it.objetivo ? '<p class="item-objetivo"><b>Objetivo 2027:</b> '+escapeHtml(it.objetivo)+'</p>' : "";
   return '<div class="item'+(it.migrated?' is-migrated':'')+'" id="item-'+it.id+'" data-id="'+it.id+'">'
     + '<div class="item-top"><div class="item-idx mono">#'+idx+'</div><div class="item-title">'+escapeHtml(it.title)+'</div></div>'
@@ -1426,6 +1481,7 @@ function applyChanges(baseItems, editMap, addedList, removedSet){
   var next = baseItems.filter(function(it){ return !removedSet[it.id]; }).map(function(it){
     var clone = JSON.parse(JSON.stringify(it));
     if(editMap[clone.id] !== undefined) clone.title = editMap[clone.id];
+    if(editMap["d:"+clone.id] !== undefined){ clone.description = editMap["d:"+clone.id]; clone.desc_label = ""; }
     return clone;
   });
   (addedList || []).forEach(function(r){
@@ -1433,6 +1489,7 @@ function applyChanges(baseItems, editMap, addedList, removedSet){
     next.push({
       id: r.item_id, type: "isolada",
       title: (editMap[r.item_id] !== undefined) ? editMap[r.item_id] : r.title,
+      description: (editMap["d:"+r.item_id] !== undefined) ? editMap["d:"+r.item_id] : "",
       divisions: r.division ? [r.division] : [],
       origins: r.origin ? [r.origin] : ["Ambos"],
       n: 1, originals: null, reason: null
@@ -1462,10 +1519,10 @@ async function computeMigratedItems(){
     var prioSet = {};
     prioRes.data.forEach(function(r){ prioSet[r.item_id] = true; });
 
-    var tEditsRes = await sb.from("item_edits").select("item_id,title").eq("track", TRACK).eq("stage","telecom").eq("quadrant", QUAD);
+    var tEditsRes = await sb.from("item_edits").select("item_id,title,description").eq("track", TRACK).eq("stage","telecom").eq("quadrant", QUAD);
     var tAddedRes = await sb.from("item_added").select("item_id,title,origin,division").eq("track", TRACK).eq("stage","telecom").eq("quadrant", QUAD);
     var tRemovedRes = await sb.from("item_removed").select("item_id").eq("track", TRACK).eq("stage","telecom").eq("quadrant", QUAD);
-    var tEditMap = {}; if(!tEditsRes.error) (tEditsRes.data||[]).forEach(function(r){ tEditMap[r.item_id] = r.title; });
+    var tEditMap = {}; if(!tEditsRes.error) (tEditsRes.data||[]).forEach(function(r){ tEditMap[r.item_id] = r.title; if(r.description !== null && r.description !== undefined) tEditMap["d:"+r.item_id] = r.description; });
     var tRemovedSet = {}; if(!tRemovedRes.error) (tRemovedRes.data||[]).forEach(function(r){ tRemovedSet[r.item_id] = true; });
     var tAddedList = (!tAddedRes.error && tAddedRes.data) ? tAddedRes.data : [];
 
@@ -1485,14 +1542,15 @@ async function computeMigratedItems(){
     // Aplica edições/remoções feitas na própria etapa Não Telecom sobre os
     // itens migrados (identificados pelo prefixo "mig_"), sem afetar o item
     // original na etapa Telecom + Ambos.
-    var mEditsRes = await sb.from("item_edits").select("item_id,title").eq("track", TRACK).eq("stage","naotelecom").eq("quadrant", QUAD);
+    var mEditsRes = await sb.from("item_edits").select("item_id,title,description").eq("track", TRACK).eq("stage","naotelecom").eq("quadrant", QUAD);
     var mRemovedRes = await sb.from("item_removed").select("item_id").eq("track", TRACK).eq("stage","naotelecom").eq("quadrant", QUAD);
-    var mEditMap = {}; if(!mEditsRes.error) (mEditsRes.data||[]).forEach(function(r){ if(r.item_id.indexOf("mig_") === 0) mEditMap[r.item_id] = r.title; });
+    var mEditMap = {}; if(!mEditsRes.error) (mEditsRes.data||[]).forEach(function(r){ if(r.item_id.indexOf("mig_") === 0){ mEditMap[r.item_id] = r.title; if(r.description !== null && r.description !== undefined) mEditMap["d:"+r.item_id] = r.description; } });
     var mRemovedSet = {}; if(!mRemovedRes.error) (mRemovedRes.data||[]).forEach(function(r){ if(r.item_id.indexOf("mig_") === 0) mRemovedSet[r.item_id] = true; });
 
     return migratedBase.filter(function(it){ return !mRemovedSet[it.id]; }).map(function(it){
       var clone = JSON.parse(JSON.stringify(it));
       if(mEditMap[clone.id] !== undefined) clone.title = mEditMap[clone.id];
+      if(mEditMap["d:"+clone.id] !== undefined){ clone.description = mEditMap["d:"+clone.id]; clone.desc_label = ""; }
       return clone;
     });
   }catch(e){ console.warn("migration compute failed", e); return []; }
@@ -1503,11 +1561,11 @@ async function loadItemChanges(){
   // anterior), assim uma remoção desfeita ou uma edição revertida também
   // aparece certo aqui, sem precisar recarregar a página.
   try{
-    var editsRes = await sb.from("item_edits").select("item_id,title").eq("track", TRACK).eq("stage", STAGE).eq("quadrant", QUAD);
+    var editsRes = await sb.from("item_edits").select("item_id,title,description").eq("track", TRACK).eq("stage", STAGE).eq("quadrant", QUAD);
     var addedRes = await sb.from("item_added").select("item_id,title,origin,division").eq("track", TRACK).eq("stage", STAGE).eq("quadrant", QUAD);
     var removedRes = await sb.from("item_removed").select("item_id").eq("track", TRACK).eq("stage", STAGE).eq("quadrant", QUAD);
     var editMap = {};
-    if(!editsRes.error) (editsRes.data || []).forEach(function(r){ editMap[r.item_id] = r.title; });
+    if(!editsRes.error) (editsRes.data || []).forEach(function(r){ editMap[r.item_id] = r.title; if(r.description !== null && r.description !== undefined) editMap["d:"+r.item_id] = r.description; });
     var removedSet = {};
     if(!removedRes.error) (removedRes.data || []).forEach(function(r){ removedSet[r.item_id] = true; });
     var addedList = (!addedRes.error && addedRes.data) ? addedRes.data : [];
@@ -1520,7 +1578,7 @@ async function loadItemChanges(){
     var nextIds = next.map(function(i){ return i.id; }).join("|");
     var titlesChanged = next.some(function(it){
       var prev = ITEMS.filter(function(p){ return p.id === it.id; })[0];
-      return !prev || prev.title !== it.title;
+      return !prev || prev.title !== it.title || (prev.description || "") !== (it.description || "");
     });
     if(prevIds !== nextIds || titlesChanged){
       ITEMS = next;
@@ -1988,6 +2046,7 @@ function applyChanges(baseItems, editMap, addedList, removedSet){
   var next = (baseItems || []).filter(function(it){ return !removedSet[it.id]; }).map(function(it){
     var clone = JSON.parse(JSON.stringify(it));
     if(editMap[clone.id] !== undefined) clone.title = editMap[clone.id];
+    if(editMap["d:"+clone.id] !== undefined){ clone.description = editMap["d:"+clone.id]; clone.desc_label = ""; }
     return clone;
   });
   (addedList || []).forEach(function(r){
@@ -1995,6 +2054,7 @@ function applyChanges(baseItems, editMap, addedList, removedSet){
     next.push({
       id: r.item_id, type: "isolada",
       title: (editMap[r.item_id] !== undefined) ? editMap[r.item_id] : r.title,
+      description: (editMap["d:"+r.item_id] !== undefined) ? editMap["d:"+r.item_id] : "",
       divisions: r.division ? [r.division] : [],
       origins: r.origin ? [r.origin] : ["Ambos"],
       n: 1, originals: null, reason: null
@@ -2015,8 +2075,12 @@ async function fetchStageState(stage){
     removedByQuad: emptyQuadMap(function(){ return {}; })
   };
   try{
-    var editsRes = await sb.from("item_edits").select("quadrant,item_id,title").eq("track", currentTrack).eq("stage", stage);
-    if(!editsRes.error) (editsRes.data || []).forEach(function(r){ if(out.editsByQuad[r.quadrant]) out.editsByQuad[r.quadrant][r.item_id] = r.title; });
+    var editsRes = await sb.from("item_edits").select("quadrant,item_id,title,description").eq("track", currentTrack).eq("stage", stage);
+    if(!editsRes.error) (editsRes.data || []).forEach(function(r){
+      if(!out.editsByQuad[r.quadrant]) return;
+      out.editsByQuad[r.quadrant][r.item_id] = r.title;
+      if(r.description !== null && r.description !== undefined) out.editsByQuad[r.quadrant]["d:"+r.item_id] = r.description;
+    });
     var addedRes = await sb.from("item_added").select("quadrant,item_id,title,origin,division").eq("track", currentTrack).eq("stage", stage);
     if(!addedRes.error) (addedRes.data || []).forEach(function(r){ if(out.addedByQuad[r.quadrant]) out.addedByQuad[r.quadrant].push(r); });
     var removedRes = await sb.from("item_removed").select("quadrant,item_id").eq("track", currentTrack).eq("stage", stage);
@@ -2236,9 +2300,20 @@ document.getElementById("admin-mount").addEventListener("click", async function(
     var newTitle = textarea.value.trim();
     if(!newTitle){ status.textContent = "O texto não pode ficar vazio."; status.className = "edit-status err"; return; }
     status.textContent = "Salvando…"; status.className = "edit-status";
+    var payload = { track: currentTrack, stage: currentStage, quadrant: currentQuad, item_id: id, title: newTitle, updated_at: new Date().toISOString() };
+    // Descrição (só trilha Projetos): só grava se o admin mexeu no texto ou
+    // se já havia uma descrição editada — assim salvar só o título não
+    // "congela" a descrição sugerida como se tivesse sido editada.
+    var descTa = card.querySelector(".edit-desc-input");
+    if(descTa){
+      var newDesc = descTa.value.trim();
+      var descChanged = newDesc !== (descTa.getAttribute("data-orig") || "").trim();
+      var prevDescEdited = !!(itemEditsByQuad[currentQuad] && itemEditsByQuad[currentQuad]["d:"+id] !== undefined);
+      if(descChanged || prevDescEdited) payload.description = newDesc;
+    }
     try{
       var res = await sb.from("item_edits").upsert(
-        { track: currentTrack, stage: currentStage, quadrant: currentQuad, item_id: id, title: newTitle, updated_at: new Date().toISOString() },
+        payload,
         { onConflict: "track,stage,quadrant,item_id" }
       );
       if(res.error) throw res.error;
@@ -2473,6 +2548,7 @@ async function refreshAll(){
         var migFinal = migBase.filter(function(it){ return !itemRemovedByQuad[q][it.id]; }).map(function(it){
           var c = JSON.parse(JSON.stringify(it));
           if(itemEditsByQuad[q][it.id] !== undefined) c.title = itemEditsByQuad[q][it.id];
+          if(itemEditsByQuad[q]["d:"+it.id] !== undefined){ c.description = itemEditsByQuad[q]["d:"+it.id]; c.desc_label = ""; }
           return c;
         });
         list = native.concat(migFinal);
@@ -2758,7 +2834,8 @@ function renderResultsView(){
     // motivo aparecem aqui também, para o admin ter o mesmo contexto de quem
     // votou ao decidir priorizar. SWOT não tem esses campos, então esse
     // bloco fica vazio para ele.
-    var descBlockA = it.description ? '<p class="item-desc">'+escapeHtml(it.description)+'</p>' : "";
+    var descFlagA = it.desc_label ? '<span class="desc-flag">'+escapeHtml(it.desc_label)+'</span>' : "";
+    var descBlockA = it.description ? '<p class="item-desc">'+descFlagA+escapeHtml(it.description)+'</p>' : "";
     var objBlockA = it.objetivo ? '<p class="item-objetivo"><b>Objetivo 2027:</b> '+escapeHtml(it.objetivo)+'</p>' : "";
     var detailsA = "";
     if(it.type === "convergencia" && it.originals){
@@ -2830,7 +2907,7 @@ function renderEditView(){
     + '</div></div>';
 
   html += '<div class="top5-wrap"><h3>&#9999;&#65039; Editar textos &mdash; '+QUAD_LABELS[currentQuad]+'</h3>'
-    + '<p style="font-size:12.5px; color:var(--ink-soft); margin:-4px 0 4px;">Altere o texto de um item e clique em Salvar, ou remova uma proposta. A mudan&ccedil;a aparece na tela de vota&ccedil;&atilde;o de quem est&aacute; votando em at&eacute; 20 segundos, sem precisar reenviar nenhum arquivo. Itens migrados (identificados pelo prefixo <code>mig_</code>) podem ser editados/ocultados aqui sem afetar o item original na etapa Telecom + Ambos.</p></div>';
+    + '<p style="font-size:12.5px; color:var(--ink-soft); margin:-4px 0 4px;">Altere o texto (e, na trilha Projetos, a descri&ccedil;&atilde;o) de um item e clique em Salvar, ou remova uma proposta. A mudan&ccedil;a aparece na tela de vota&ccedil;&atilde;o de quem est&aacute; votando em at&eacute; 20 segundos, sem precisar reenviar nenhum arquivo. Itens migrados (identificados pelo prefixo <code>mig_</code>) podem ser editados/ocultados aqui sem afetar o item original na etapa Telecom + Ambos.</p></div>';
   items.forEach(function(it, i){
     var isEdited = !!(itemEditsByQuad[currentQuad] && itemEditsByQuad[currentQuad][it.id] !== undefined);
     var isAdded = it.id.indexOf("add_") === 0;
@@ -2839,6 +2916,17 @@ function renderEditView(){
         + (it.objetivo ? '<b>Objetivo 2027:</b> '+escapeHtml(it.objetivo) : '')
         + '</div>'
       : '';
+    // Descrição editável (só trilha Projetos 2027 — os itens de SWOT são só
+    // o texto curto do título). data-orig guarda o texto exibido ao abrir a
+    // aba, para só gravar a descrição se o admin realmente mexer nela.
+    var descEdit = "";
+    if(currentTrack === "projetos"){
+      var curDesc = it.description || "";
+      descEdit = '<label class="edit-desc-label">Descri&ccedil;&atilde;o do projeto'
+        + (it.desc_label ? ' &middot; <span class="desc-flag">'+escapeHtml(it.desc_label)+'</span>' : '')
+        + '</label>'
+        + '<textarea class="edit-desc-input" rows="5" data-orig="'+escapeHtml(curDesc)+'" placeholder="Sem descri&ccedil;&atilde;o &mdash; escreva aqui para incluir uma.">'+escapeHtml(curDesc)+'</textarea>';
+    }
     html += '<div class="admin-item edit-item'+(it.migrated?' is-migrated':'')+'" data-id="'+it.id+'">'
       + '<div style="font-size:11.5px; color:var(--ink-soft); margin-bottom:6px;">#'+(i+1)
       +   (isAdded ? ' &middot; <span class="added-badge">proposta adicionada</span>' : '')
@@ -2847,6 +2935,7 @@ function renderEditView(){
       + '</div>'
       + ctxLine
       + '<textarea class="edit-title-input" rows="2">'+escapeHtml(it.title)+'</textarea>'
+      + descEdit
       + '<div class="edit-actions">'
       +   '<button class="edit-save">Salvar</button>'
       +   (isEdited ? '<button class="edit-reset">Restaurar original</button>' : '')
@@ -2916,7 +3005,9 @@ function drawExportFooter(doc, pageWidth, pageHeight, rightText){
   doc.text(rightText || "", pageWidth-40, pageHeight-20, { align:"right" });
 }
 
-function drawQuadTable(doc, quad, x, y, w){
+function drawQuadTable(doc, quad, x, y, w, ctx){
+  // ctx (opcional) = {pageW, pageH, subtitle}: habilita quebra automática de
+  // página quando a tabela (Top N grande / títulos longos) passa do fim da folha.
   var meta = EXPORT_QUAD_META[quad];
   var rows = buildExportRows(quad);
   var barH = 22;
@@ -2951,6 +3042,13 @@ function drawQuadTable(doc, quad, x, y, w){
   rows.forEach(function(r, i){
     var lines = doc.splitTextToSize(r.title, colTitle - 8);
     var rh = Math.max(16, lines.length * 10.5 + 6);
+    if(ctx && y + rh > ctx.pageH - 50){
+      drawExportFooter(doc, ctx.pageW, ctx.pageH, "Tipos: Não Telecom · Telecom · Telecom + Ambos · Ambos");
+      doc.addPage([ctx.pageW, ctx.pageH], "portrait");
+      drawExportHeader(doc, ctx.pageW, ctx.subtitle + " (cont.)");
+      y = 96;
+      doc.setFont("helvetica", "normal"); doc.setFontSize(9);
+    }
     if(i % 2 === 1){ doc.setFillColor(250,250,250); doc.rect(x, y, w, rh, "F"); }
     var cy = y + 11;
     var cx = x;
@@ -2991,35 +3089,29 @@ function getJsPDFCtor(){
 
 function exportQuadPDF(quad){
   var JsPDF = getJsPDFCtor();
-  var pageW = 620, pageH = 760;
-  var doc = new JsPDF({ unit:"pt", format:[pageW, pageH] });
-  drawExportHeader(doc, pageW, STAGE_LABELS[currentStage] + " — Top " + topN + " — " + EXPORT_QUAD_META[quad].label);
-  drawQuadTable(doc, quad, 40, 96, pageW-80);
+  // Sempre RETRATO (A4 em proporção): largura < altura.
+  var pageW = 620, pageH = 877;
+  var doc = new JsPDF({ unit:"pt", format:[pageW, pageH], orientation:"portrait" });
+  var subQ = STAGE_LABELS[currentStage] + " — Top " + topN + " — " + EXPORT_QUAD_META[quad].label;
+  drawExportHeader(doc, pageW, subQ);
+  drawQuadTable(doc, quad, 40, 96, pageW-80, { pageW:pageW, pageH:pageH, subtitle:subQ });
   drawExportFooter(doc, pageW, pageH, "Tipos: Não Telecom · Telecom · Telecom + Ambos · Ambos");
   doc.save("Top" + topN + "_" + safeFileLabel(EXPORT_QUAD_META[quad].label) + "_" + safeFileLabel(STAGE_LABELS[currentStage]) + "_RV_Digital_2027.pdf");
 }
 
 function exportTotalPDF(){
   var JsPDF = getJsPDFCtor();
-  var pageW = 1000, pageH = 700;
-  var doc = new JsPDF({ unit:"pt", format:[pageW, pageH] });
-  // Agrupa QUAD_ORDER em pares de página (2 tabelas por página) — funciona
-  // tanto para os 4 quadrantes do SWOT (2 páginas de 2) quanto, se chamada,
-  // para o quadrante único "geral" da trilha Projetos 2027 (1 página com 1
-  // tabela ocupando a largura inteira).
-  var pairs = [];
-  for(var pi = 0; pi < QUAD_ORDER.length; pi += 2) pairs.push(QUAD_ORDER.slice(pi, pi+2));
-  pairs.forEach(function(pair, idx){
-    if(idx > 0) doc.addPage([pageW, pageH]);
-    var subtitle = STAGE_LABELS[currentStage] + " — Top " + topN + " — " + pair.map(function(q){ return EXPORT_QUAD_META[q].label; }).join(" e ");
+  // RETRATO (A4 em proporção). Um quadrante por página — as tabelas ocupam a
+  // largura inteira e, se passarem do fim da folha, continuam na página
+  // seguinte (nada fica cortado). Na trilha Projetos 2027 (quadrante único)
+  // sai uma tabela só.
+  var pageW = 620, pageH = 877;
+  var doc = new JsPDF({ unit:"pt", format:[pageW, pageH], orientation:"portrait" });
+  QUAD_ORDER.forEach(function(q, idx){
+    if(idx > 0) doc.addPage([pageW, pageH], "portrait");
+    var subtitle = STAGE_LABELS[currentStage] + " — Top " + topN + " — " + EXPORT_QUAD_META[q].label;
     drawExportHeader(doc, pageW, subtitle);
-    if(pair.length === 2){
-      var colW = (pageW - 80 - 30) / 2;
-      drawQuadTable(doc, pair[0], 40, 96, colW);
-      drawQuadTable(doc, pair[1], 40 + colW + 30, 96, colW);
-    } else {
-      drawQuadTable(doc, pair[0], 40, 96, pageW - 80);
-    }
+    drawQuadTable(doc, q, 40, 96, pageW - 80, { pageW:pageW, pageH:pageH, subtitle:subtitle });
     drawExportFooter(doc, pageW, pageH, "Tipos: Não Telecom · Telecom · Telecom + Ambos · Ambos");
   });
   doc.save("Top" + topN + "_Total_" + safeFileLabel(STAGE_LABELS[currentStage]) + "_RV_Digital_2027.pdf");

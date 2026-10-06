@@ -213,6 +213,10 @@ alter table item_edits add column if not exists stage text not null default 'tel
 update item_edits set stage = 'telecom' where stage is null;
 alter table item_edits add column if not exists track text not null default 'swot';
 update item_edits set track = 'swot' where track is null;
+-- Descrição editada pelo admin (trilha Projetos 2027). NULL = a descrição
+-- não foi editada (vale a descrição original/sugerida embutida na página);
+-- '' = o admin apagou a descrição de propósito.
+alter table item_edits add column if not exists description text;
 alter table item_edits drop constraint if exists item_edits_pkey;
 alter table item_edits add constraint item_edits_pkey primary key (track, stage, quadrant, item_id);
 alter table item_edits drop constraint if exists item_edits_stage_check;
