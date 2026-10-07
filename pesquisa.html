@@ -329,6 +329,7 @@ details.swot-rel .rel-note{margin-top:6px; font-size:12px; font-style:italic; co
 .sv-card.missing{border-color:#d9534f; box-shadow:0 0 0 3px rgba(217,83,79,.15);}
 .sv-card textarea, .sv-card input[type=text]{width:100%; box-sizing:border-box; border:1px solid var(--line); border-radius:10px; padding:10px 12px; font:inherit; font-size:14px;}
 .sv-card textarea{min-height:110px; resize:vertical;}
+.sv-card textarea.sv-qc{min-height:64px; margin-top:12px; background:#fbfcfe;}
 .sv-send{display:flex; align-items:center; gap:12px; flex-wrap:wrap;}
 .sv-thanks{background:#e2f7ee; border:1px solid #9fd8bd; color:#0d6b4a; border-radius:12px; padding:14px 16px; font-weight:700; margin:0 0 14px; display:none;}
 .sv-res-q{display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--line);}
@@ -649,7 +650,7 @@ try{
 var QS = [{"id": "q1", "t": "De modo geral, qual a sua satisfação com a ferramenta?", "k": "scale"}, {"id": "q2", "t": "Foi fácil entender como votar? (clareza das instruções)", "k": "scale"}, {"id": "q3", "t": "A navegação e o visual da ferramenta foram intuitivos?", "k": "scale"}, {"id": "q4", "t": "As descrições dos projetos e do SWOT foram claras o suficiente para decidir o seu voto?", "k": "scale"}, {"id": "q5", "t": "As páginas “SWOT definido” e “Projetos priorizados” refletiram bem a discussão?", "k": "scale"}, {"id": "q6", "t": "Você recomendaria usar a ferramenta nos próximos planejamentos?", "k": "yn"}];
 var LABELS = {1:"Muito ruim", 2:"Ruim", 3:"Regular", 4:"Bom", 5:"Ótimo"};
 var YN = [["sim","Sim"],["talvez","Talvez"],["nao","Não"]];
-var ans = {};
+var ans = {}, cm = {};   // cm: comentário opcional de cada pergunta
 var sb = null;
 try{
   if(window.RV_SUPABASE_URL && window.RV_SUPABASE_ANON_KEY && window.RV_SUPABASE_URL.indexOf("COLOQUE_AQUI") === -1 && window.supabase){
@@ -678,19 +679,33 @@ function render(){
     } else {
       YN.forEach(function(o){ h += '<button type="button" class="sv-opt'+(ans[q.id] === o[0] ? ' on' : '')+'" data-q="'+q.id+'" data-v="'+o[0]+'"><b>'+o[1]+'</b></button>'; });
     }
-    h += '</div></div>';
+    h += '</div>';
+    if(ans[q.id] !== undefined){
+      h += '<textarea class="sv-qc" data-c="'+q.id+'" maxlength="1000" placeholder="Quer comentar sua resposta? (opcional)">'+esc(cm[q.id] || "")+'</textarea>';
+    }
+    h += '</div>';
   });
   document.getElementById("sv-qs").innerHTML = h;
 }
 function setStatus(m, c){ var e = document.getElementById("sv-status"); e.textContent = m; e.className = "cv-status" + (c ? " " + c : ""); }
+document.getElementById("sv-qs").addEventListener("input", function(e){
+  var t = e.target.closest("textarea[data-c]"); if(t) cm[t.getAttribute("data-c")] = t.value;
+});
 document.getElementById("sv-qs").addEventListener("click", function(e){
   var b = e.target.closest("button[data-q]"); if(!b) return;
   var v = b.getAttribute("data-v"); ans[b.getAttribute("data-q")] = (/^\d$/.test(v) ? parseInt(v, 10) : v);
-  var c = document.getElementById("sv-c-" + b.getAttribute("data-q")); render();
+  var first = !document.querySelector('textarea[data-c="'+b.getAttribute("data-q")+'"]');
+  render();
   document.getElementById("sv-c-" + b.getAttribute("data-q")).classList.remove("missing");
+  if(first){ var nt = document.querySelector('textarea[data-c="'+b.getAttribute("data-q")+'"]'); if(nt && window.innerWidth > 640) nt.focus({ preventScroll: true }); }
   setStatus("", "");
 });
-function persistLocal(){ try{ localStorage.setItem(LS, JSON.stringify({ a: ans, c: document.getElementById("sv-comment").value, n: document.getElementById("sv-name").value, sent: true })); }catch(e){} }
+function payloadAnswers(){
+  var o = Object.assign({}, ans);
+  QS.forEach(function(q){ var t = (cm[q.id] || "").trim(); if(t && ans[q.id] !== undefined) o[q.id + "_c"] = t; });
+  return o;
+}
+function persistLocal(){ try{ localStorage.setItem(LS, JSON.stringify({ a: ans, m: cm, c: document.getElementById("sv-comment").value, n: document.getElementById("sv-name").value, sent: true })); }catch(e){} }
 document.getElementById("sv-send").addEventListener("click", async function(){
   var miss = QS.filter(function(q){ return ans[q.id] === undefined; });
   QS.forEach(function(q){ var c = document.getElementById("sv-c-" + q.id); if(c) c.classList.toggle("missing", ans[q.id] === undefined); });
@@ -702,7 +717,7 @@ document.getElementById("sv-send").addEventListener("click", async function(){
   if(!sb){ setStatus("Sem conexão com o servidor. Tente novamente.", "err"); return; }
   var btn = this; btn.disabled = true; setStatus("Enviando…", "");
   try{
-    var r = await sb.rpc("save_survey", { p_client_id: myId, p_answers: ans, p_name: (document.getElementById("sv-name").value || "").trim() || null, p_comment: (document.getElementById("sv-comment").value || "").trim() || null });
+    var r = await sb.rpc("save_survey", { p_client_id: myId, p_answers: payloadAnswers(), p_name: (document.getElementById("sv-name").value || "").trim() || null, p_comment: (document.getElementById("sv-comment").value || "").trim() || null });
     if(r.error) throw r.error;
     persistLocal(); setStatus("", "");
     var t = document.getElementById("sv-thanks"); t.style.display = "block"; window.scrollTo({ top: 0, behavior: "smooth" });
@@ -712,7 +727,7 @@ document.getElementById("sv-send").addEventListener("click", async function(){
 });
 try{
   var saved = JSON.parse(localStorage.getItem(LS) || "null");
-  if(saved){ ans = saved.a || {}; document.getElementById("sv-comment").value = saved.c || ""; document.getElementById("sv-name").value = saved.n || ""; if(saved.sent) document.getElementById("sv-thanks").style.display = "block"; }
+  if(saved){ ans = saved.a || {}; cm = saved.m || {}; document.getElementById("sv-comment").value = saved.c || ""; document.getElementById("sv-name").value = saved.n || ""; if(saved.sent) document.getElementById("sv-thanks").style.display = "block"; }
 }catch(e){}
 render();
 }catch(e){ console.error("pesquisa init error", e); }

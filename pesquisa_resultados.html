@@ -329,6 +329,7 @@ details.swot-rel .rel-note{margin-top:6px; font-size:12px; font-style:italic; co
 .sv-card.missing{border-color:#d9534f; box-shadow:0 0 0 3px rgba(217,83,79,.15);}
 .sv-card textarea, .sv-card input[type=text]{width:100%; box-sizing:border-box; border:1px solid var(--line); border-radius:10px; padding:10px 12px; font:inherit; font-size:14px;}
 .sv-card textarea{min-height:110px; resize:vertical;}
+.sv-card textarea.sv-qc{min-height:64px; margin-top:12px; background:#fbfcfe;}
 .sv-send{display:flex; align-items:center; gap:12px; flex-wrap:wrap;}
 .sv-thanks{background:#e2f7ee; border:1px solid #9fd8bd; color:#0d6b4a; border-radius:12px; padding:14px 16px; font-weight:700; margin:0 0 14px; display:none;}
 .sv-res-q{display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--line);}
@@ -637,6 +638,7 @@ footer.pagefoot{ background:var(--surface); border-top:1px solid var(--line); ma
       <div class="fs-actions"><button class="cv-btn" id="sr-refresh" type="button">Atualizar</button><button class="cv-btn" id="sr-csv" type="button">Exportar (Excel/CSV)</button><button class="cv-btn" id="sr-print" type="button">Imprimir / PDF</button></div></div>
     <div class="sv-card"><div class="sv-q">Notas por pergunta (m&eacute;dia de 1 a 5)</div><div id="sr-scale"></div></div>
     <div class="sv-card"><div class="sv-q">Recomendaria nos pr&oacute;ximos planejamentos?</div><div id="sr-yn" class="fs-sum" style="margin-top:8px;"></div></div>
+    <div class="sv-card"><div class="sv-q">Coment&aacute;rios por pergunta</div><div id="sr-qcm" style="margin-top:8px;"></div></div>
     <div class="sv-card"><div class="sv-q">Sugest&otilde;es e coment&aacute;rios</div><div id="sr-cm" style="margin-top:8px;"></div></div>
   </div>
 </main>
@@ -672,14 +674,24 @@ function draw(){
   var yn = { sim:0, talvez:0, nao:0 };
   rows.forEach(function(x){ var v = x.answers && x.answers.q6; if(yn[v] !== undefined) yn[v]++; });
   document.getElementById("sr-yn").innerHTML = '<span class="fs-pill tot">Sim: <b>'+yn.sim+'</b></span><span class="fs-pill tot">Talvez: <b>'+yn.talvez+'</b></span><span class="fs-pill tot">Não: <b>'+yn.nao+'</b></span>';
+  var qh = "";
+  QS.forEach(function(q, i){
+    var lst = rows.filter(function(x){ return x.answers && x.answers[q.id + "_c"]; });
+    if(!lst.length) return;
+    qh += '<div class="sv-q" style="font-size:14px; margin:14px 0 6px;">'+(i+1)+'. '+esc(q.t)+'</div>' + lst.map(function(x){
+      var v = x.answers[q.id], lab = (q.k === "scale") ? ("Nota " + v) : ({sim:"Sim", talvez:"Talvez", nao:"Não"}[v] || v);
+      return '<div class="sv-cm">'+esc(x.answers[q.id + "_c"])+'<small>'+lab+' &middot; '+(x.name ? esc(x.name) : 'Anônimo')+' &middot; '+new Date(x.updated_at).toLocaleDateString("pt-BR")+'</small></div>';
+    }).join("");
+  });
+  document.getElementById("sr-qcm").innerHTML = qh || '<div class="sv-hint">Nenhum comentário por pergunta até agora.</div>';
   var cm = rows.filter(function(x){ return x.comment; });
   document.getElementById("sr-cm").innerHTML = cm.length ? cm.map(function(x){
     return '<div class="sv-cm">'+esc(x.comment)+'<small>'+(x.name ? esc(x.name) : 'Anônimo')+' &middot; '+new Date(x.updated_at).toLocaleDateString("pt-BR")+'</small></div>';
   }).join("") : '<div class="sv-hint">Nenhuma sugestão enviada até agora.</div>';
 }
 function csv(){
-  var head = ["Data"].concat(QS.map(function(q){ return q.t; })).concat(["Sugestões","Nome (opcional)"]);
-  var lines = [head].concat(rows.map(function(x){ return [new Date(x.updated_at).toLocaleString("pt-BR")].concat(QS.map(function(q){ return x.answers ? (x.answers[q.id] === undefined ? "" : x.answers[q.id]) : ""; })).concat([x.comment || "", x.name || ""]); }));
+  var head = ["Data"].concat(QS.map(function(q){ return q.t; })).concat(QS.map(function(q, i){ return "Comentário P" + (i+1); })).concat(["Sugestões","Nome (opcional)"]);
+  var lines = [head].concat(rows.map(function(x){ return [new Date(x.updated_at).toLocaleString("pt-BR")].concat(QS.map(function(q){ return x.answers ? (x.answers[q.id] === undefined ? "" : x.answers[q.id]) : ""; })).concat(QS.map(function(q){ return (x.answers && x.answers[q.id + "_c"]) || ""; })).concat([x.comment || "", x.name || ""]); }));
   var txt = lines.map(function(l){ return l.map(function(c){ return '"' + String(c).replace(/"/g, '""') + '"'; }).join(";"); }).join("\r\n");
   var a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["﻿" + txt], { type:"text/csv;charset=utf-8" })); a.download = "pesquisa_satisfacao_rv_2027.csv"; a.click();
 }
