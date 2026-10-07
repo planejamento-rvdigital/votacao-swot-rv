@@ -934,7 +934,7 @@ var SWOT_META = {
 var SWOT_ORDER = ["forcas","fraquezas","oportunidades","ameacas"];
 var swotEdits = {};
 var OBJ_LIST = [{"code": "F1", "persp": "Financeiro", "text": "Alcançar Ebitda de R$ 75,9 milhões"}, {"code": "F2", "persp": "Financeiro", "text": "Margem Ebitda/ROL superior a 23% (DRE CPC 47)"}, {"code": "F3", "persp": "Financeiro", "text": "Índice de Liquidez Corrente igual ou maior do que 1,0 (Debentures, Compensação da Lei Perse, Tese do Século e resultados)"}, {"code": "F4", "persp": "Financeiro", "text": "Atingir mais de R$ 20 milhões em Ebitda com produtos não telecom"}, {"code": "F5", "persp": "Financeiro", "text": "Comprometimento máximo de 65% da margem de contribuição com o Custo Fixo"}, {"code": "P1", "persp": "Processos Internos", "text": "Implantação e Formatação do SOC (Security Operations Center)"}, {"code": "P2", "persp": "Processos Internos", "text": "Modelo de governança da Viabilizar o Seguro Cibernético"}, {"code": "P3", "persp": "Processos Internos", "text": "Consolidar o projeto da Máquina de Vendas, como o canal digital da RV"}, {"code": "P4", "persp": "Processos Internos", "text": "Ampliar nosso portfólio com as operadores de telefonia"}, {"code": "P5", "persp": "Processos Internos", "text": "RV Pay operante com conta digital (migração da folha BMRV)"}, {"code": "C1", "persp": "Cliente e Cliente do Cliente", "text": "Mais de 25k de operantes de ADQ em D-30"}, {"code": "C2", "persp": "Cliente e Cliente do Cliente", "text": "Mais de 1K de clientes de COBAN"}, {"code": "C3", "persp": "Cliente e Cliente do Cliente", "text": "Mais 15 milhões de chip vendidos"}, {"code": "C4", "persp": "Cliente e Cliente do Cliente", "text": "Mais 70k de operantes RCV (recargas, chip e verticais) em D-30"}, {"code": "C5", "persp": "Cliente e Cliente do Cliente", "text": "Operar algum contrato telecom fora do pré-pago"}, {"code": "A1", "persp": "Aprendizado e Conhecimento", "text": "Fortalecer a Marca RV Digital (contemplar inclusive a celebração dos 25 anos da RV)"}, {"code": "A2", "persp": "Aprendizado e Conhecimento", "text": "Turnover máximo de 20% a.a."}, {"code": "A3", "persp": "Aprendizado e Conhecimento", "text": "Implantar programa da trilha de sucessores para o nível gerencial"}, {"code": "A4", "persp": "Aprendizado e Conhecimento", "text": "Lançar a 4ª edição do PDGA"}, {"code": "A5", "persp": "Aprendizado e Conhecimento", "text": "Operação da Máquina de Vendas"}];
-var isAdmin = false, editingDescId = null, editingObjId = null, descOpen = {}, relOpen = {};
+var isAdmin = false, editingDescId = null, editingObjId = null, editingRelId = null, relSel = null, swotLinkOv = {}, descOpen = {}, relOpen = {};
 document.addEventListener("toggle", function(e){ var d = e.target; if(d && d.classList && d.classList.contains("swot-rel")) relOpen[d.getAttribute("data-id")] = d.open; }, true);
 
 function swotText(q, n){
@@ -943,7 +943,7 @@ function swotText(q, n){
 }
 function swotLinksFor(it){
   if(TRACK !== "projetos") return [];
-  var refs = SWOT_LINKS[it.id];
+  var refs = swotLinkOv[it.id] || SWOT_LINKS[it.id];
   if(!refs){
     // grupo personalizado ou projeto desfeito de um grupo: junta as relações dos projetos de origem
     var defOf = {}, oidByTitle = {}, oids = [];
@@ -961,14 +961,62 @@ function swotLinksFor(it){
   });
 }
 function swotRelBlock(it){
-  var refs = swotLinksFor(it);
-  if(!refs.length) return "";
+  if(TRACK !== "projetos") return "";
+  var editing = isAdmin && editingRelId === it.id;
+  var refs = editing ? Object.keys(relSel).filter(function(k){ return relSel[k]; }) : swotLinksFor(it);
+  if(!refs.length && !isAdmin) return "";
+  var n = swotLinksFor(it).length;
+  var label = n === 0 ? 'Nenhum item do SWOT definido relacionado' : (n === 1 ? 'Ver o item do SWOT definido relacionado' : 'Ver os '+n+' itens do SWOT definido relacionados');
+  var altBtn = (isAdmin && !editing) ? '<button type="button" class="desc-edit-btn" data-a="redit" data-id="'+it.id+'" style="margin-left:8px;">&#9998; Alterar</button>' : '';
+  if(editing){
+    var html = '<div class="obj-picker" style="margin-left:40px;">', first = true;
+    SWOT_ORDER.forEach(function(q){
+      var m = SWOT_META[q];
+      html += '<h4>'+m.label+(q === "ameacas" ? 's' : 's')+'</h4>';
+      (SWOT_FINAL[q] || []).forEach(function(_, i){
+        var ref = q+":"+(i+1);
+        html += '<button type="button" class="obj-opt'+(relSel[ref] ? ' cur' : '')+'" data-a="rtog" data-ref="'+ref+'"><span class="oc">'+(relSel[ref] ? '&#9745;' : '&#9744;')+'</span><span>'+escapeHtml(swotText(q, i+1))+'</span></button>';
+      });
+    });
+    html += '<div class="obj-actions"><button type="button" class="primary" data-a="rsave" data-id="'+it.id+'" style="background:var(--link); color:#fff; border-color:var(--link);">Salvar</button>'
+      + '<button type="button" data-a="rcancel" data-id="'+it.id+'">Cancelar</button>'
+      + '<button type="button" data-a="rnone" data-id="'+it.id+'">Nenhum</button>'
+      + '<button type="button" data-a="rreset" data-id="'+it.id+'" title="Volta às relações sugeridas">Restaurar sugestão</button>'
+      + '<span class="desc-status" id="rel-st-'+it.id+'"></span></div></div>';
+    return html;
+  }
   var lis = refs.map(function(r){
     var p = r.split(":"), m = SWOT_META[p[0]];
     return '<li><span class="rel-q" style="color:'+m.c+'; background:'+m.soft+';">'+m.label+'</span><span>'+escapeHtml(swotText(p[0], parseInt(p[1],10)))+'</span></li>';
   }).join("");
-  return '<details class="orig swot-rel" data-id="'+it.id+'"'+(relOpen[it.id] ? ' open' : '')+'><summary>Ver '+(refs.length === 1 ? 'o item do SWOT definido relacionado' : 'os '+refs.length+' itens do SWOT definido relacionados')+'</summary>'
-    + '<ul>'+lis+'</ul><div class="rel-note">Relações sugeridas a partir do conteúdo do projeto; servem de contexto e não alteram a votação.</div></details>';
+  var detail = refs.length
+    ? '<details class="orig swot-rel" data-id="'+it.id+'" style="display:inline-block; margin:0;"'+(relOpen[it.id] ? ' open' : '')+'><summary>'+label+'</summary>'
+      + '<ul>'+lis+'</ul><div class="rel-note">Relações sugeridas a partir do conteúdo do projeto; servem de contexto e não alteram a votação.</div></details>'
+    : '<span style="font-size:12.5px; color:var(--ink-soft);">'+label+'</span>';
+  return '<div class="rel-row" style="margin:6px 0 0 40px;">'+detail+altBtn+'</div>';
+}
+async function saveRel(id, mode){
+  var st = document.getElementById("rel-st-"+id);
+  if(!sb) return;
+  if(st){ st.textContent = "Salvando…"; st.className = "desc-status"; }
+  try{
+    var res;
+    if(mode === "reset"){
+      res = await sb.from("item_edits").delete().eq("track", TRACK).eq("stage", STAGE).eq("quadrant", QUAD).eq("item_id", "swl:"+id);
+    } else {
+      var list = (mode === "none") ? [] : Object.keys(relSel).filter(function(k){ return relSel[k]; });
+      res = await sb.from("item_edits").upsert(
+        { track: TRACK, stage: STAGE, quadrant: QUAD, item_id: "swl:"+id, title: JSON.stringify(list), updated_at: new Date().toISOString() },
+        { onConflict: "track,stage,quadrant,item_id" });
+    }
+    if(res.error) throw res.error;
+    editingRelId = null; relSel = null;
+    await loadItemChanges();
+    rerenderItems();
+    showFlash("Relações com o SWOT atualizadas.", false);
+  }catch(err){
+    if(st){ st.textContent = "Erro ao salvar (" + (err && err.message ? err.message : "desconhecido") + ")."; st.className = "desc-status err"; }
+  }
 }
 function descBlockFor(it){
   if(TRACK !== "projetos") return null;
@@ -1042,7 +1090,7 @@ function setAdmin(v){
   v = !!v;
   if(v === isAdmin) return;
   isAdmin = v;
-  if(!v){ editingDescId = null; editingObjId = null; }
+  if(!v){ editingDescId = null; editingObjId = null; editingRelId = null; relSel = null; }
   rerenderItems();
 }
 async function initAdminSession(){
@@ -1059,7 +1107,7 @@ async function loadSwotEdits(){
     var r = await sb.from("item_edits").select("item_id,title").eq("track","swot").eq("stage","telecom").like("item_id","final_%");
     if(r.error) return;
     var next = {}; (r.data || []).forEach(function(x){ next[x.item_id] = x.title; });
-    if(JSON.stringify(next) !== JSON.stringify(swotEdits)){ swotEdits = next; if(!editingDescId && !editingObjId) rerenderItems(); }
+    if(JSON.stringify(next) !== JSON.stringify(swotEdits)){ swotEdits = next; if(!editingDescId && !editingObjId && !editingRelId) rerenderItems(); }
   }catch(e){ console.warn("swot edits load failed", e); }
 }
 async function saveDesc(id, mode){
@@ -1101,6 +1149,20 @@ document.addEventListener("click", function(e){
   else if(a === "osel"){ saveObj(id, "set", OBJ_LIST[parseInt(b.getAttribute("data-i"),10)].text); }
   else if(a === "onone"){ saveObj(id, "set", ""); }
   else if(a === "oreset"){ saveObj(id, "reset"); }
+  else if(a === "redit"){
+    var itx = ITEMS.filter(function(x){ return x.id === id; })[0];
+    relSel = {}; swotLinksFor(itx).forEach(function(r){ relSel[r] = true; });
+    editingRelId = id; rerenderItems();
+  }
+  else if(a === "rtog"){
+    var ref = b.getAttribute("data-ref"); relSel[ref] = !relSel[ref];
+    b.classList.toggle("cur", !!relSel[ref]);
+    var oc = b.querySelector(".oc"); if(oc) oc.innerHTML = relSel[ref] ? "&#9745;" : "&#9744;";
+  }
+  else if(a === "rcancel"){ editingRelId = null; relSel = null; rerenderItems(); }
+  else if(a === "rsave"){ saveRel(id, "set"); }
+  else if(a === "rnone"){ saveRel(id, "none"); }
+  else if(a === "rreset"){ saveRel(id, "reset"); }
 });
 
 function renderItem(it, idx){
@@ -1429,6 +1491,10 @@ async function loadItemChanges(){
     var removedSet = {};
     if(!removedRes.error) (removedRes.data || []).forEach(function(r){ removedSet[r.item_id] = true; });
     var addedList = (!addedRes.error && addedRes.data) ? addedRes.data : [];
+    var ovNext = {};
+    Object.keys(editMap).forEach(function(k){ if(k.indexOf("swl:") === 0){ try{ var arr = JSON.parse(editMap[k]); if(arr && arr.length !== undefined) ovNext[k.slice(4)] = arr; }catch(e){} } });
+    var ovChanged = JSON.stringify(ovNext) !== JSON.stringify(swotLinkOv);
+    if(ovChanged) swotLinkOv = ovNext;
 
     var nativeNext = applyChanges(TRACK === "projetos" ? projBuildItems(editMap) : BASE_ITEMS, editMap, addedList, removedSet);
     var migratedNext = await computeMigratedItems();
@@ -1440,7 +1506,7 @@ async function loadItemChanges(){
       var prev = ITEMS.filter(function(p){ return p.id === it.id; })[0];
       return !prev || prev.title !== it.title || (prev.description || "") !== (it.description || "") || (prev.objetivo || "") !== (it.objetivo || "");
     });
-    if((prevIds !== nextIds || titlesChanged) && !editingDescId && !editingObjId){
+    if((prevIds !== nextIds || titlesChanged || ovChanged) && !editingDescId && !editingObjId && !editingRelId){
       ITEMS = next;
       renderItems();
       paintMyVotes();
