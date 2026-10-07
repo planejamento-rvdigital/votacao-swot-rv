@@ -158,6 +158,10 @@ main{max-width:900px; margin:0 auto; padding:26px 20px 90px;}
 .item.voted{border-color:var(--accent);}
 .item.is-migrated{border-style:dashed;}
 .item-top{display:flex; gap:10px; align-items:flex-start;}
+.item-idx .mv{display:flex; flex-direction:column; gap:2px; margin-top:4px;}
+.item-idx .mv button{font:inherit; font-size:10px; line-height:1; padding:3px 0; width:24px; border:1px solid var(--line); border-radius:6px; background:var(--surface); color:var(--link); cursor:pointer;}
+.item-idx .mv button:disabled{opacity:.3; cursor:default;}
+.item-idx .mv button:not(:disabled):hover{background:var(--accent-soft);}
 .item-idx{ font-family:"Ubuntu Mono",monospace; font-size:12.5px; color:var(--ink-soft); flex:none; padding-top:2px; width:30px; }
 .item-title{font-size:16.5px; font-weight:500; flex:1;}
 .item-meta{display:flex; gap:6px; flex-wrap:wrap; margin:8px 0 0 40px;}
@@ -305,6 +309,59 @@ details.swot-rel .rel-note{margin-top:6px; font-size:12px; font-style:italic; co
 .fs-actions-row{flex-basis:100%; display:flex; gap:8px; flex-wrap:wrap; align-items:center; padding-left:32px;}
 .fs-total{padding:10px 16px 12px; font-size:13px; color:var(--ink-soft); border-top:1px solid var(--line); background:var(--surface-2);}
 .fs-foot{font-size:12px; color:var(--ink-soft); margin-top:16px; line-height:1.5;}
+.sv-card{background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:18px 20px; box-shadow:var(--shadow); margin:0 0 14px;}
+.sv-q{font-weight:800; color:var(--navy); font-size:15.5px; margin:0 0 4px;}
+.sv-q .sv-n{display:inline-flex; width:24px; height:24px; border-radius:50%; background:var(--navy); color:#fff; font-size:12px; align-items:center; justify-content:center; margin-right:8px;}
+.sv-hint{font-size:12.5px; color:var(--ink-soft); margin:0 0 10px;}
+.sv-scale{display:flex; gap:8px; flex-wrap:wrap;}
+.sv-opt{flex:1 1 90px; min-width:84px; border:2px solid var(--line); background:var(--surface-2); border-radius:12px; padding:10px 6px; cursor:pointer; text-align:center; font-family:inherit; color:var(--ink);}
+.sv-opt b{display:block; font-size:20px; line-height:1.1;}
+.sv-opt span{display:block; font-size:11.5px; color:var(--ink-soft); margin-top:2px;}
+.sv-opt:hover{border-color:#9db4cc;}
+.sv-opt.on{background:var(--navy); border-color:var(--navy); color:#fff;}
+.sv-opt.on span{color:#dbe6f2;}
+.sv-card.missing{border-color:#d9534f; box-shadow:0 0 0 3px rgba(217,83,79,.15);}
+.sv-card textarea, .sv-card input[type=text]{width:100%; box-sizing:border-box; border:1px solid var(--line); border-radius:10px; padding:10px 12px; font:inherit; font-size:14px;}
+.sv-card textarea{min-height:110px; resize:vertical;}
+.sv-send{display:flex; align-items:center; gap:12px; flex-wrap:wrap;}
+.sv-thanks{background:#e2f7ee; border:1px solid #9fd8bd; color:#0d6b4a; border-radius:12px; padding:14px 16px; font-weight:700; margin:0 0 14px; display:none;}
+.sv-res-q{display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--line);}
+.sv-res-q:last-child{border-bottom:0;}
+.sv-res-t{flex:1; font-size:14px; color:var(--ink);}
+.sv-bar{flex:0 0 220px; height:12px; background:#e8edf3; border-radius:99px; overflow:hidden;}
+.sv-bar i{display:block; height:100%; background:var(--green);}
+.sv-avg{flex:0 0 48px; text-align:right; font-weight:800; color:var(--navy);}
+.sv-dist{font-size:11.5px; color:var(--ink-soft); flex:0 0 150px;}
+.sv-cm{border:1px solid var(--line); border-radius:10px; padding:10px 12px; margin:0 0 8px; background:var(--surface-2); font-size:14px; white-space:pre-wrap;}
+.sv-cm small{display:block; color:var(--ink-soft); margin-top:6px; font-size:12px;}
+@media(max-width:640px){ .sv-res-q{flex-wrap:wrap;} .sv-bar{flex:1 1 100%;} }
+@media print{ .sv-send button{display:none !important;} }
+.pr-card{background:var(--surface); border:1px solid var(--line); border-radius:12px; overflow:hidden; box-shadow:var(--shadow);}
+.pr-head{display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; padding:12px 16px; background:#f3e6f7; color:#6a2a80; border-bottom:2px solid #7a2e8a; font-weight:700; font-size:15px;}
+.pr-ctrl{display:flex; align-items:center; gap:8px; font-size:12.5px; font-weight:600; color:var(--ink);}
+.pr-ctrl input{width:56px; border:1px solid var(--line); border-radius:8px; padding:4px 8px; font:inherit; font-size:13px;}
+.pr-list{list-style:none; margin:0; padding:0;}
+.pr-item{display:flex; align-items:center; gap:12px; padding:12px 16px; border-bottom:1px solid var(--line); font-size:14.5px; line-height:1.4;}
+.pr-n{flex:none; min-width:34px; height:34px; border-radius:50%; background:#7a2e8a; color:#fff; font-weight:700; font-size:13px; display:inline-flex; align-items:center; justify-content:center;}
+.pr-item.pr-no{background:#f7f8fa;}
+.pr-item.pr-no .pr-n{background:#9aa3b2;}
+.pr-item.pr-no .pr-title{color:var(--ink-soft);}
+.pr-main{flex:1; display:flex; align-items:center; gap:8px; flex-wrap:wrap; min-width:0;}
+.pr-title{font-weight:600;}
+.pr-resp{font-size:12px; color:var(--ink-soft); background:var(--surface-2); border:1px solid var(--line); border-radius:999px; padding:2px 10px;}
+.pr-tag{font-size:11.5px; font-weight:700; border-radius:999px; padding:3px 11px; white-space:nowrap;}
+.pr-tag.yes{background:#e2f8ea; color:#0a7a3a; border:1px solid #9bd8b2;}
+.pr-tag.no{background:#eceff3; color:#5b6575; border:1px solid #cfd5de;}
+.pr-cut{list-style:none; display:flex; align-items:center; gap:10px; padding:6px 16px; font-size:11.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:#b42318; background:#fdeeee; border-bottom:1px solid var(--line);}
+.pr-cut::before,.pr-cut::after{content:""; flex:1; border-top:2px dashed #e3a5a0;}
+.pr-tools{display:flex; gap:6px; flex:none; align-items:center;}
+.pr-tools .cv-btn{padding:4px 10px;}
+.pr-item.editing{flex-wrap:wrap;}
+.pr-edit{flex:1; display:flex; gap:8px; flex-wrap:wrap; align-items:center; min-width:240px;}
+.pr-edit input{border:1px solid var(--line); border-radius:8px; padding:8px 10px; font:inherit; font-size:14px;}
+.pr-edit input.t{flex:3; min-width:220px;} .pr-edit input.r{flex:1; min-width:140px;}
+.pr-save{font-size:12.5px; font-weight:600; margin-left:8px;} .pr-save.err{color:#b23b3b;} .pr-save.ok{color:#0d6b4a;}
+@media print{ .pr-tools, .pr-ctrl{display:none !important;} }
 @media print{ header.hero .back-to-menu, .fs-actions, .fs-login, .fs-edit-note, .fs-edit-btn{display:none !important;} .fs-quad{box-shadow:none; break-inside:avoid;} }
 
 @media (max-width:640px){ .mx-wrap{margin-left:0;} }
@@ -925,7 +982,7 @@ function renderItems(){
     html += '<div class="migrated-heading">Também priorizadas em Telecom + Ambos (tag Ambos)</div>';
     html += migHtml || '<div class="empty-note">Nenhum item com tag Ambos foi priorizado ainda na etapa Telecom + Ambos.</div>';
   }
-  if(isAdmin && TRACK === "projetos") html = '<div class="admin-note">Modo administrador ativo: use <b>&#9998; Editar descri&ccedil;&atilde;o</b> em cada projeto. As mudan&ccedil;as ficam salvas para todos.</div>' + html;
+  if(isAdmin && TRACK === "projetos") html = '<div class="admin-note">Modo administrador ativo: use <b>&#9998; Editar descri&ccedil;&atilde;o</b> em cada projeto e <b>&#9650; &#9660;</b> para reordenar. As mudan&ccedil;as ficam salvas para todos. <button type="button" class="desc-edit-btn" data-a="mreset" style="margin-left:6px;">Restaurar ordem alfab&eacute;tica</button></div>' + html;
   mount.innerHTML = html;
   renderOriginFilterAndLegend();
 }
@@ -1203,6 +1260,52 @@ function unifSave(id){
   }
   unifPersist(cfg, "Projetos unificados atualizados.", id);
 }
+var orderBusy = false;
+function moveBtns(it, idx){
+  if(TRACK !== "projetos" || !isAdmin) return "";
+  var n = ITEMS.length;
+  return '<div class="mv"><button type="button" data-a="mup" data-id="'+it.id+'" title="Mover para cima"'+(idx <= 1 ? ' disabled' : '')+'>&#9650;</button>'
+    + '<button type="button" data-a="mdn" data-id="'+it.id+'" title="Mover para baixo"'+(idx >= n ? ' disabled' : '')+'>&#9660;</button></div>';
+}
+function applyOrder(items, editMap){
+  var arr = null;
+  try{ if(editMap && editMap["_ordem"]) arr = JSON.parse(editMap["_ordem"]); }catch(e){}
+  if(!arr || arr.length === undefined || !arr.length) return items;
+  var pos = {}; arr.forEach(function(id, i){ pos[id] = i; });
+  var known = items.filter(function(it){ return pos[it.id] !== undefined; }).sort(function(a,b){ return pos[a.id] - pos[b.id]; });
+  var rest = items.filter(function(it){ return pos[it.id] === undefined; });   // itens novos: ficam no fim, na ordem padrão
+  return known.concat(rest);
+}
+async function saveOrder(mode){
+  if(!sb) return;
+  orderBusy = true;
+  try{
+    var res;
+    if(mode === "reset"){
+      res = await sb.from("item_edits").delete().eq("track", TRACK).eq("stage", STAGE).eq("quadrant", QUAD).eq("item_id", "_ordem");
+    } else {
+      res = await sb.from("item_edits").upsert(
+        { track: TRACK, stage: STAGE, quadrant: QUAD, item_id: "_ordem", title: JSON.stringify(ITEMS.map(function(x){ return x.id; })), updated_at: new Date().toISOString() },
+        { onConflict: "track,stage,quadrant,item_id" });
+    }
+    if(res.error) throw res.error;
+    orderBusy = false;
+    if(mode === "reset"){ await loadItemChanges(); rerenderItems(); showFlash("Ordem alfabética restaurada.", false); }
+  }catch(err){
+    orderBusy = false;
+    showFlash("Erro ao salvar a ordem (" + (err && err.message ? err.message : "desconhecido") + ").", true);
+    await loadItemChanges();
+  }
+}
+function moveItem(id, dir){
+  var i = -1; ITEMS.forEach(function(x, k){ if(x.id === id) i = k; });
+  var j = i + dir;
+  if(i < 0 || j < 0 || j >= ITEMS.length) return;
+  var t = ITEMS[i]; ITEMS[i] = ITEMS[j]; ITEMS[j] = t;
+  rerenderItems();
+  var el = document.getElementById("item-"+id); if(el && el.scrollIntoView) el.scrollIntoView({ block: "nearest" });
+  saveOrder("set");
+}
 function rerenderItems(){ renderItems(); paintMyVotes(); }
 function setAdmin(v){
   v = !!v;
@@ -1300,6 +1403,9 @@ document.addEventListener("click", function(e){
   }
   else if(a === "ucancel"){ editingUnifId = null; unifSel = null; rerenderItems(); }
   else if(a === "usave"){ unifSave(id); }
+  else if(a === "mup"){ moveItem(id, -1); }
+  else if(a === "mdn"){ moveItem(id, 1); }
+  else if(a === "mreset"){ if(confirm("Voltar à ordem alfabética padrão (convergências primeiro)?")) saveOrder("reset"); }
   else if(a === "udissolve"){
     if(!confirm("Desfazer esta convergência? Os projetos dela passam a ser votados individualmente.")) return;
     var cfg2 = projEffectiveCfg(lastEditMap);
@@ -1344,7 +1450,7 @@ function renderItem(it, idx){
   var objCustom = objBlockFor(it);
   if(objCustom !== null) objBlock = objCustom;
   return '<div class="item'+(it.migrated?' is-migrated':'')+'" id="item-'+it.id+'" data-id="'+it.id+'">'
-    + '<div class="item-top"><div class="item-idx mono">#'+idx+'</div>'+titleBlockFor(it)+'</div>'
+    + '<div class="item-top"><div class="item-idx mono">#'+idx+moveBtns(it, idx)+'</div>'+titleBlockFor(it)+'</div>'
     + '<div class="item-meta">'+migChip+typeChip+originChips+divisionChips+'</div>'
     + descBlock
     + objBlock
@@ -1622,6 +1728,7 @@ async function computeMigratedItems(){
 }
 
 async function loadItemChanges(){
+  if(orderBusy) return;
   // Sempre recalcula a partir de BASE_ITEMS (nunca acumula em cima do ITEMS
   // anterior), assim uma remoção desfeita ou uma edição revertida também
   // aparece certo aqui, sem precisar recarregar a página.
@@ -1641,6 +1748,7 @@ async function loadItemChanges(){
     if(ovChanged) swotLinkOv = ovNext;
 
     var nativeNext = applyChanges(TRACK === "projetos" ? projBuildItems(editMap) : BASE_ITEMS, editMap, addedList, removedSet);
+    if(TRACK === "projetos") nativeNext = applyOrder(nativeNext, editMap);
     var migratedNext = await computeMigratedItems();
     var next = nativeNext.concat(migratedNext);
 
