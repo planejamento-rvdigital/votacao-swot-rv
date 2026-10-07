@@ -175,6 +175,14 @@ main{max-width:900px; margin:0 auto; padding:26px 20px 90px;}
 .obj-opt:hover{background:var(--accent-soft);}
 .obj-opt.cur{border-color:var(--link); background:var(--accent-soft); font-weight:600;}
 .obj-opt .oc{font-size:10.5px; font-weight:700; color:var(--link); flex:none; min-width:22px;}
+.title-edit{display:flex; flex-direction:column; gap:6px; width:100%;}
+.title-edit input{width:100%; box-sizing:border-box; font:inherit; font-size:15px; padding:7px 10px; border:1px solid var(--line); border-radius:10px; background:var(--surface); color:var(--ink);}
+.item-title .desc-edit-btn{margin-left:8px; vertical-align:2px;}
+.unif-row{margin:8px 0 0 40px;}
+.unif-row details.orig{display:inline-block; margin:0;}
+.unif-warn{margin:8px 0; padding:6px 10px; font-size:12px; color:#8a5a00; background:#fdf0dc; border-radius:8px;}
+.obj-opt .ud{font-size:11px; color:var(--ink-soft); font-weight:400; margin-left:6px;}
+.obj-opt[disabled]{opacity:.7; cursor:default;}
 .obj-actions{display:flex; gap:8px; align-items:center; margin-top:10px; flex-wrap:wrap;}
 .obj-actions button{font:inherit; font-size:12.5px; font-weight:600; padding:5px 12px; border-radius:999px; border:1px solid var(--line); background:var(--surface); color:var(--ink); cursor:pointer;}
 .chip{ font-size:12px; padding:3px 9px; border-radius:999px; border:1px solid var(--line); color:var(--ink-soft); background:var(--surface-2); font-weight:500; }
@@ -934,7 +942,7 @@ var SWOT_META = {
 var SWOT_ORDER = ["forcas","fraquezas","oportunidades","ameacas"];
 var swotEdits = {};
 var OBJ_LIST = [{"code": "F1", "persp": "Financeiro", "text": "Alcançar Ebitda de R$ 75,9 milhões"}, {"code": "F2", "persp": "Financeiro", "text": "Margem Ebitda/ROL superior a 23% (DRE CPC 47)"}, {"code": "F3", "persp": "Financeiro", "text": "Índice de Liquidez Corrente igual ou maior do que 1,0 (Debentures, Compensação da Lei Perse, Tese do Século e resultados)"}, {"code": "F4", "persp": "Financeiro", "text": "Atingir mais de R$ 20 milhões em Ebitda com produtos não telecom"}, {"code": "F5", "persp": "Financeiro", "text": "Comprometimento máximo de 65% da margem de contribuição com o Custo Fixo"}, {"code": "P1", "persp": "Processos Internos", "text": "Implantação e Formatação do SOC (Security Operations Center)"}, {"code": "P2", "persp": "Processos Internos", "text": "Modelo de governança da Viabilizar o Seguro Cibernético"}, {"code": "P3", "persp": "Processos Internos", "text": "Consolidar o projeto da Máquina de Vendas, como o canal digital da RV"}, {"code": "P4", "persp": "Processos Internos", "text": "Ampliar nosso portfólio com as operadores de telefonia"}, {"code": "P5", "persp": "Processos Internos", "text": "RV Pay operante com conta digital (migração da folha BMRV)"}, {"code": "C1", "persp": "Cliente e Cliente do Cliente", "text": "Mais de 25k de operantes de ADQ em D-30"}, {"code": "C2", "persp": "Cliente e Cliente do Cliente", "text": "Mais de 1K de clientes de COBAN"}, {"code": "C3", "persp": "Cliente e Cliente do Cliente", "text": "Mais 15 milhões de chip vendidos"}, {"code": "C4", "persp": "Cliente e Cliente do Cliente", "text": "Mais 70k de operantes RCV (recargas, chip e verticais) em D-30"}, {"code": "C5", "persp": "Cliente e Cliente do Cliente", "text": "Operar algum contrato telecom fora do pré-pago"}, {"code": "A1", "persp": "Aprendizado e Conhecimento", "text": "Fortalecer a Marca RV Digital (contemplar inclusive a celebração dos 25 anos da RV)"}, {"code": "A2", "persp": "Aprendizado e Conhecimento", "text": "Turnover máximo de 20% a.a."}, {"code": "A3", "persp": "Aprendizado e Conhecimento", "text": "Implantar programa da trilha de sucessores para o nível gerencial"}, {"code": "A4", "persp": "Aprendizado e Conhecimento", "text": "Lançar a 4ª edição do PDGA"}, {"code": "A5", "persp": "Aprendizado e Conhecimento", "text": "Operação da Máquina de Vendas"}];
-var isAdmin = false, editingDescId = null, editingObjId = null, editingRelId = null, relSel = null, swotLinkOv = {}, descOpen = {}, relOpen = {};
+var isAdmin = false, editingDescId = null, editingObjId = null, editingRelId = null, editingTitleId = null, editingUnifId = null, unifSel = null, lastEditMap = {}, relSel = null, swotLinkOv = {}, descOpen = {}, relOpen = {};
 document.addEventListener("toggle", function(e){ var d = e.target; if(d && d.classList && d.classList.contains("swot-rel")) relOpen[d.getAttribute("data-id")] = d.open; }, true);
 
 function swotText(q, n){
@@ -1085,12 +1093,122 @@ async function saveObj(id, mode, text){
     if(st){ st.textContent = "Erro ao salvar (" + (err && err.message ? err.message : "desconhecido") + ")."; st.className = "desc-status err"; }
   }
 }
+function isEditingAny(){ return !!(editingDescId || editingObjId || editingRelId || editingTitleId || editingUnifId); }
+function titleBlockFor(it){
+  if(TRACK !== "projetos" || !isAdmin) return '<div class="item-title">'+escapeHtml(it.title)+'</div>';
+  if(editingTitleId === it.id){
+    return '<div class="item-title"><div class="title-edit"><input type="text" id="title-in-'+it.id+'" value="'+escapeHtml(it.title)+'">'
+      + '<div class="desc-actions" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">'
+      + '<button type="button" class="desc-edit-btn" style="background:var(--link); color:#fff; border-color:var(--link);" data-a="tsave" data-id="'+it.id+'">Salvar</button>'
+      + '<button type="button" class="desc-edit-btn" data-a="tcancel" data-id="'+it.id+'">Cancelar</button>'
+      + '<button type="button" class="desc-edit-btn" data-a="treset" data-id="'+it.id+'" title="Volta ao título original">Restaurar original</button>'
+      + '<span class="desc-status" id="title-st-'+it.id+'"></span></div></div></div>';
+  }
+  return '<div class="item-title">'+escapeHtml(it.title)+'<button type="button" class="desc-edit-btn" data-a="tedit" data-id="'+it.id+'">&#9998; Editar t&iacute;tulo</button></div>';
+}
+function baseTitleOf(id){
+  var b = projBuildItems(lastEditMap).filter(function(x){ return x.id === id; })[0];
+  return b ? b.title : null;
+}
+async function saveTitle(id, mode){
+  var st = document.getElementById("title-st-"+id);
+  if(!sb) return;
+  var t;
+  if(mode === "reset"){ t = baseTitleOf(id); if(!t){ if(st){ st.textContent = "Título original indisponível."; st.className = "desc-status err"; } return; } }
+  else { t = (document.getElementById("title-in-"+id).value || "").trim(); if(!t){ if(st){ st.textContent = "O título não pode ficar vazio."; st.className = "desc-status err"; } return; } }
+  if(st){ st.textContent = "Salvando…"; st.className = "desc-status"; }
+  try{
+    var res = await sb.from("item_edits").upsert(
+      { track: TRACK, stage: STAGE, quadrant: QUAD, item_id: id, title: t, updated_at: new Date().toISOString() },
+      { onConflict: "track,stage,quadrant,item_id" });
+    if(res.error) throw res.error;
+    editingTitleId = null;
+    await loadItemChanges();
+    rerenderItems();
+    showFlash(mode === "reset" ? "Título original restaurado." : "Título atualizado.", false);
+  }catch(err){
+    if(st){ st.textContent = "Erro ao salvar (" + (err && err.message ? err.message : "desconhecido") + ")."; st.className = "desc-status err"; }
+  }
+}
+function unifOidOf(it){
+  var o = PROJ.orig.filter(function(x){ return x.sid === it.id; })[0];
+  return o ? o.oid : null;
+}
+function unifBlockFor(it, details){
+  if(TRACK !== "projetos" || !isAdmin) return details;
+  var editing = editingUnifId === it.id;
+  var isConv = it.type === "convergencia";
+  if(!editing){
+    var btn = '<button type="button" class="desc-edit-btn" data-a="uedit" data-id="'+it.id+'" style="margin-left:8px;">&#9998; '+(isConv ? 'Alterar projetos unificados' : 'Unificar com outros projetos')+'</button>';
+    return '<div class="unif-row">'+(details || "")+btn+'</div>';
+  }
+  var cfg = projEffectiveCfg(lastEditMap);
+  var where = {};
+  cfg.groups.forEach(function(g){
+    var mem = (g.members || []);
+    if(mem.length < 2) return;
+    var t = (g.title !== undefined ? g.title : ((PROJ.groups.filter(function(d){ return d.id === g.id; })[0] || {}).title)) || "convergência";
+    mem.forEach(function(m){ where[m] = { gid: g.id, title: t }; });
+  });
+  var ownOid = isConv ? null : unifOidOf(it);
+  var html = '<div class="obj-picker" style="margin-left:40px;"><h4>'+(isConv ? 'Projetos que fazem parte desta convergência' : 'Escolha os projetos a unificar com este (m&iacute;nimo 1 al&eacute;m dele)')+'</h4>';
+  PROJ.orig.slice().sort(function(a,b){ return a.title.localeCompare(b.title, "pt-BR"); }).forEach(function(o){
+    var on = !!unifSel[o.oid], locked = (o.oid === ownOid);
+    var w = where[o.oid];
+    var note = (w && w.gid !== it.id) ? '<span class="ud">em: '+escapeHtml(w.title)+'</span>' : (!w ? '<span class="ud">individual</span>' : '');
+    html += '<button type="button" class="obj-opt'+(on ? ' cur' : '')+'" data-a="utog" data-oid="'+o.oid+'"'+(locked ? ' disabled' : '')+'><span class="oc">'+(on ? '&#9745;' : '&#9744;')+'</span><span>'+escapeHtml(o.title)+'<span class="ud">'+escapeHtml(o.division || "")+'</span>'+note+'</span></button>';
+  });
+  html += '<div class="unif-warn"><b>Atenção:</b> mudar os projetos unificados altera o que os votos já registrados representam. Projetos escolhidos que estavam em outra convergência saem dela.</div>'
+    + '<div class="obj-actions"><button type="button" data-a="usave" data-id="'+it.id+'" style="background:var(--link); color:#fff; border-color:var(--link);">Salvar</button>'
+    + '<button type="button" data-a="ucancel" data-id="'+it.id+'">Cancelar</button>'
+    + (isConv ? '<button type="button" data-a="udissolve" data-id="'+it.id+'" title="Os projetos passam a ser votados individualmente">Desfazer convergência</button>' : '')
+    + '<span class="desc-status" id="unif-st-'+it.id+'"></span></div></div>';
+  return html;
+}
+async function unifPersist(cfg, okMsg, id){
+  var st = document.getElementById("unif-st-"+id);
+  if(st){ st.textContent = "Salvando…"; st.className = "desc-status"; }
+  try{
+    var res = await sb.from("item_edits").upsert(
+      { track: TRACK, stage: STAGE, quadrant: QUAD, item_id: "_grupos", title: JSON.stringify(cfg), updated_at: new Date().toISOString() },
+      { onConflict: "track,stage,quadrant,item_id" });
+    if(res.error) throw res.error;
+    editingUnifId = null; unifSel = null;
+    await loadItemChanges();
+    rerenderItems();
+    showFlash(okMsg, false);
+  }catch(err){
+    if(st){ st.textContent = "Erro ao salvar (" + (err && err.message ? err.message : "desconhecido") + ")."; st.className = "desc-status err"; }
+  }
+}
+function unifNewId(cfg){
+  var mx = 0;
+  PROJ.groups.concat(cfg.groups).forEach(function(g){ var n = parseInt(String(g.id).replace("proj_c",""), 10); if(!isNaN(n) && n > mx) mx = n; });
+  return "proj_c" + (mx + 1);
+}
+function unifSave(id){
+  var it = ITEMS.filter(function(x){ return x.id === id; })[0];
+  var st = document.getElementById("unif-st-"+id);
+  if(!it || !sb) return;
+  var sel = Object.keys(unifSel).filter(function(k){ return unifSel[k]; });
+  if(sel.length < 2){ if(st){ st.textContent = "Selecione ao menos 2 projetos (para votar individualmente, use Desfazer convergência)."; st.className = "desc-status err"; } return; }
+  var cfg = projEffectiveCfg(lastEditMap);
+  cfg.groups.forEach(function(g){ g.members = (g.members || []).filter(function(m){ return !unifSel[m]; }); });
+  if(it.type === "convergencia"){
+    var g = cfg.groups.filter(function(x){ return x.id === id; })[0];
+    if(!g){ g = { id: id, members: [] }; cfg.groups.push(g); }
+    g.members = sel;
+  } else {
+    cfg.groups.push({ id: unifNewId(cfg), title: it.title, description: it.description || "", reason: "Convergência definida pelo administrador.", objetivo: it.objetivo || "", members: sel });
+  }
+  unifPersist(cfg, "Projetos unificados atualizados.", id);
+}
 function rerenderItems(){ renderItems(); paintMyVotes(); }
 function setAdmin(v){
   v = !!v;
   if(v === isAdmin) return;
   isAdmin = v;
-  if(!v){ editingDescId = null; editingObjId = null; editingRelId = null; relSel = null; }
+  if(!v){ editingDescId = null; editingObjId = null; editingRelId = null; editingTitleId = null; editingUnifId = null; relSel = null; unifSel = null; }
   rerenderItems();
 }
 async function initAdminSession(){
@@ -1107,7 +1225,7 @@ async function loadSwotEdits(){
     var r = await sb.from("item_edits").select("item_id,title").eq("track","swot").eq("stage","telecom").like("item_id","final_%");
     if(r.error) return;
     var next = {}; (r.data || []).forEach(function(x){ next[x.item_id] = x.title; });
-    if(JSON.stringify(next) !== JSON.stringify(swotEdits)){ swotEdits = next; if(!editingDescId && !editingObjId && !editingRelId) rerenderItems(); }
+    if(JSON.stringify(next) !== JSON.stringify(swotEdits)){ swotEdits = next; if(!isEditingAny()) rerenderItems(); }
   }catch(e){ console.warn("swot edits load failed", e); }
 }
 async function saveDesc(id, mode){
@@ -1163,6 +1281,31 @@ document.addEventListener("click", function(e){
   else if(a === "rsave"){ saveRel(id, "set"); }
   else if(a === "rnone"){ saveRel(id, "none"); }
   else if(a === "rreset"){ saveRel(id, "reset"); }
+  else if(a === "tedit"){ editingTitleId = id; rerenderItems(); var ti = document.getElementById("title-in-"+id); if(ti) ti.focus(); }
+  else if(a === "tcancel"){ editingTitleId = null; rerenderItems(); }
+  else if(a === "tsave"){ saveTitle(id, "set"); }
+  else if(a === "treset"){ saveTitle(id, "reset"); }
+  else if(a === "uedit"){
+    var itu = ITEMS.filter(function(x){ return x.id === id; })[0];
+    unifSel = {};
+    if(itu.type === "convergencia"){
+      (itu.originals || []).forEach(function(x){ var o = PROJ.orig.filter(function(y){ return y.title === x.text; })[0]; if(o) unifSel[o.oid] = true; });
+    } else { var ow = unifOidOf(itu); if(ow) unifSel[ow] = true; }
+    editingUnifId = id; rerenderItems();
+  }
+  else if(a === "utog"){
+    var oid = b.getAttribute("data-oid"); unifSel[oid] = !unifSel[oid];
+    b.classList.toggle("cur", !!unifSel[oid]);
+    var oc2 = b.querySelector(".oc"); if(oc2) oc2.innerHTML = unifSel[oid] ? "&#9745;" : "&#9744;";
+  }
+  else if(a === "ucancel"){ editingUnifId = null; unifSel = null; rerenderItems(); }
+  else if(a === "usave"){ unifSave(id); }
+  else if(a === "udissolve"){
+    if(!confirm("Desfazer esta convergência? Os projetos dela passam a ser votados individualmente.")) return;
+    var cfg2 = projEffectiveCfg(lastEditMap);
+    cfg2.groups = cfg2.groups.filter(function(g){ return g.id !== id; });
+    unifPersist(cfg2, "Convergência desfeita.", id);
+  }
 });
 
 function renderItem(it, idx){
@@ -1201,11 +1344,11 @@ function renderItem(it, idx){
   var objCustom = objBlockFor(it);
   if(objCustom !== null) objBlock = objCustom;
   return '<div class="item'+(it.migrated?' is-migrated':'')+'" id="item-'+it.id+'" data-id="'+it.id+'">'
-    + '<div class="item-top"><div class="item-idx mono">#'+idx+'</div><div class="item-title">'+escapeHtml(it.title)+'</div></div>'
+    + '<div class="item-top"><div class="item-idx mono">#'+idx+'</div>'+titleBlockFor(it)+'</div>'
     + '<div class="item-meta">'+migChip+typeChip+originChips+divisionChips+'</div>'
     + descBlock
     + objBlock
-    + details
+    + unifBlockFor(it, details)
     + swotRelBlock(it)
     + '<div class="vote-row">'
     +   voteBtn(it.id,5,"Concordo totalmente")
@@ -1491,6 +1634,7 @@ async function loadItemChanges(){
     var removedSet = {};
     if(!removedRes.error) (removedRes.data || []).forEach(function(r){ removedSet[r.item_id] = true; });
     var addedList = (!addedRes.error && addedRes.data) ? addedRes.data : [];
+    lastEditMap = editMap;
     var ovNext = {};
     Object.keys(editMap).forEach(function(k){ if(k.indexOf("swl:") === 0){ try{ var arr = JSON.parse(editMap[k]); if(arr && arr.length !== undefined) ovNext[k.slice(4)] = arr; }catch(e){} } });
     var ovChanged = JSON.stringify(ovNext) !== JSON.stringify(swotLinkOv);
@@ -1504,9 +1648,9 @@ async function loadItemChanges(){
     var nextIds = next.map(function(i){ return i.id; }).join("|");
     var titlesChanged = next.some(function(it){
       var prev = ITEMS.filter(function(p){ return p.id === it.id; })[0];
-      return !prev || prev.title !== it.title || (prev.description || "") !== (it.description || "") || (prev.objetivo || "") !== (it.objetivo || "");
+      return !prev || prev.title !== it.title || (prev.description || "") !== (it.description || "") || (prev.objetivo || "") !== (it.objetivo || "") || (prev.originals || []).map(function(x){ return x.text; }).join("|") !== (it.originals || []).map(function(x){ return x.text; }).join("|");
     });
-    if((prevIds !== nextIds || titlesChanged || ovChanged) && !editingDescId && !editingObjId && !editingRelId){
+    if((prevIds !== nextIds || titlesChanged || ovChanged) && !isEditingAny()){
       ITEMS = next;
       renderItems();
       paintMyVotes();
