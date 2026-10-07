@@ -167,6 +167,16 @@ main{max-width:900px; margin:0 auto; padding:26px 20px 90px;}
 .edit-item .edit-desc-input{width:100%; box-sizing:border-box; font:inherit; font-size:13.5px; line-height:1.5; padding:8px 10px; border:1px solid var(--line); border-radius:10px; background:var(--surface); color:var(--ink); resize:vertical;}
 .item-objetivo{margin:8px 0 0 40px; font-size:12.5px; color:var(--link); line-height:1.5;}
 .item-objetivo b{color:var(--ink-soft);}
+.item-objetivo .desc-edit-btn{margin-left:8px; vertical-align:1px;}
+.obj-picker{margin:8px 0 0 40px; padding:10px 12px; border:1px solid var(--line); border-radius:12px; background:var(--surface);}
+.obj-picker h4{margin:10px 0 4px; font-size:11.5px; letter-spacing:.04em; text-transform:uppercase; color:var(--ink-soft);}
+.obj-picker h4:first-child{margin-top:0;}
+.obj-opt{display:flex; gap:8px; align-items:baseline; width:100%; text-align:left; font:inherit; font-size:13px; color:var(--ink); background:none; border:1px solid transparent; border-radius:8px; padding:5px 8px; cursor:pointer;}
+.obj-opt:hover{background:var(--accent-soft);}
+.obj-opt.cur{border-color:var(--link); background:var(--accent-soft); font-weight:600;}
+.obj-opt .oc{font-size:10.5px; font-weight:700; color:var(--link); flex:none; min-width:22px;}
+.obj-actions{display:flex; gap:8px; align-items:center; margin-top:10px; flex-wrap:wrap;}
+.obj-actions button{font:inherit; font-size:12.5px; font-weight:600; padding:5px 12px; border-radius:999px; border:1px solid var(--line); background:var(--surface); color:var(--ink); cursor:pointer;}
 .chip{ font-size:12px; padding:3px 9px; border-radius:999px; border:1px solid var(--line); color:var(--ink-soft); background:var(--surface-2); font-weight:500; }
 .chip.type-c{color:var(--link); border-color:var(--link); background:var(--accent-soft);}
 .chip.origin-telecom, .chip.tag-telecom{color:var(--tag-telecom-fg); border-color:var(--tag-telecom-border); background:var(--tag-telecom-bg);}
@@ -184,6 +194,29 @@ details.orig .oi-origin.t{color:var(--tag-telecom-fg); background:var(--tag-tele
 details.orig .oi-origin.a{color:var(--tag-ambos-fg); background:var(--tag-ambos-bg);}
 details.orig .oi-origin.nt{color:var(--tag-naotelecom-fg); background:var(--tag-naotelecom-bg);}
 details.orig .reason{margin-top:6px; font-size:12.5px; color:var(--ink-soft); font-style:italic;}
+.desc-wrap{margin:8px 0 0 40px;}
+.desc-bar{display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
+.desc-toggle{background:none; border:0; padding:0; font:inherit; font-size:12.5px; font-weight:500; color:var(--link); cursor:pointer; display:inline-flex; align-items:center; gap:5px;}
+.desc-toggle .dt-ar{display:inline-block; transition:transform .15s; font-size:11px;}
+.desc-wrap.collapsed .desc-toggle .dt-ar{transform:rotate(-90deg);}
+.desc-edit-btn{font:inherit; font-size:12px; font-weight:600; color:var(--link); background:var(--surface); border:1px solid var(--line); border-radius:999px; padding:2px 10px; cursor:pointer;}
+.desc-edit-btn:hover{background:var(--accent-soft);}
+.desc-wrap .item-desc{margin:6px 0 0 0;}
+.desc-wrap.collapsed .item-desc{display:none;}
+.desc-form textarea{width:100%; box-sizing:border-box; margin-top:6px; font:inherit; font-size:13.5px; line-height:1.5; padding:8px 10px; border:1px solid var(--line); border-radius:10px; background:var(--surface); color:var(--ink); resize:vertical;}
+.desc-form .desc-actions{display:flex; gap:8px; align-items:center; margin-top:6px; flex-wrap:wrap;}
+.desc-form .desc-actions button{font:inherit; font-size:12.5px; font-weight:600; padding:5px 12px; border-radius:999px; border:1px solid var(--line); background:var(--surface); color:var(--ink); cursor:pointer;}
+.desc-form .desc-actions button.primary{background:var(--link); color:#fff; border-color:var(--link);}
+.desc-form .desc-status{font-size:12px; color:var(--ink-soft);}
+.desc-form .desc-status.err{color:#b42318;}
+.admin-note{margin:0 0 14px; padding:8px 12px; font-size:12.5px; color:var(--ink-soft); background:var(--accent-soft); border:1px solid var(--line); border-radius:10px;}
+details.swot-rel{margin:6px 0 0 40px;}
+details.swot-rel summary{font-size:12.5px; color:var(--link); cursor:pointer; list-style:none; font-weight:500;}
+details.swot-rel summary::-webkit-details-marker{display:none;}
+details.swot-rel ul{list-style:none; margin:8px 0 0; padding:0; font-size:13px; color:var(--ink-soft);}
+details.swot-rel li{margin-bottom:5px; display:flex; gap:8px; align-items:baseline;}
+details.swot-rel .rel-q{font-size:10.5px; font-weight:700; padding:1px 8px; border-radius:999px; white-space:nowrap; flex:none;}
+details.swot-rel .rel-note{margin-top:6px; font-size:12px; font-style:italic; color:var(--ink-soft);}
 
 .migrated-heading{ margin:26px 0 12px; font-size:14px; font-weight:700; color:var(--ink-soft); padding-top:14px; border-top:1px dashed var(--line); }
 
@@ -884,9 +917,191 @@ function renderItems(){
     html += '<div class="migrated-heading">Também priorizadas em Telecom + Ambos (tag Ambos)</div>';
     html += migHtml || '<div class="empty-note">Nenhum item com tag Ambos foi priorizado ainda na etapa Telecom + Ambos.</div>';
   }
+  if(isAdmin && TRACK === "projetos") html = '<div class="admin-note">Modo administrador ativo: use <b>&#9998; Editar descri&ccedil;&atilde;o</b> em cada projeto. As mudan&ccedil;as ficam salvas para todos.</div>' + html;
   mount.innerHTML = html;
   renderOriginFilterAndLegend();
 }
+
+// ---- Projetos: relações com o SWOT definido + edição/expansão da descrição ----
+var SWOT_LINKS = {"proj_c1": ["forcas:1", "oportunidades:2", "ameacas:4", "ameacas:5"], "proj_c2": ["fraquezas:1", "oportunidades:4"], "proj_c3": ["oportunidades:4", "fraquezas:2"], "proj_c4": ["oportunidades:4", "fraquezas:1"], "proj_c5": ["ameacas:1", "fraquezas:3", "fraquezas:5"], "proj_c6": ["oportunidades:2", "fraquezas:2", "fraquezas:5"], "proj_c7": ["fraquezas:1", "oportunidades:1", "ameacas:2", "forcas:2"], "proj_c8": ["forcas:5", "forcas:1", "fraquezas:1"], "proj_c9": ["oportunidades:3", "oportunidades:4", "forcas:1", "ameacas:4"], "proj_s1": ["forcas:1", "fraquezas:1"], "proj_s3": ["oportunidades:4", "oportunidades:5", "ameacas:5"], "proj_s4": ["forcas:3", "fraquezas:4", "oportunidades:2"], "proj_s7": ["oportunidades:3"], "proj_s8": ["fraquezas:4", "forcas:4"], "proj_s10": ["fraquezas:2", "forcas:5"], "proj_s11": ["ameacas:5"], "proj_s13": ["ameacas:1", "fraquezas:5"], "proj_s14": ["ameacas:1", "fraquezas:3"], "proj_s15": ["fraquezas:2"], "proj_s16": ["forcas:1"], "proj_s17": ["forcas:2", "oportunidades:1", "oportunidades:5"], "proj_s18": ["fraquezas:3", "fraquezas:5"], "proj_s19": ["ameacas:2", "oportunidades:1", "forcas:2"]};
+var SWOT_FINAL = {"forcas": ["Capilaridade Física Nacional", "Planejamento tributário", "Força de vendas com atendimento presencial", "Gestão focada no resultado", "Relacionamento com os Contratantes"], "fraquezas": ["Estrutura de Capital", "Gestão de Cadastro dos Clientes", "Atraso tecnológico do Cellcard (tecnologia obsoleta)", "Turnover elevado da equipe de vendas", "Limitação de capacity do time de TI para desenvolvimento de novas ferramentas"], "oportunidades": ["Créditos tributários e benefícios fiscais (Reforma/Perse/Tese)", "Utilização de IA como alavanca de produtividade, eficiência e escala", "Novos negócios no mercado Telecom (fora pré)", "Expansão de serviços financeiros, desenvolvendo parcerias com novos adquirentes/subadquirentes", "Expansão de parcerias com empresas de produtos físicos", "Expansão do Kiddle"], "ameacas": ["Crimes cibernéticos", "Reforma Tributária/CBS: riscos regulatórios, fiscais e de fluxo de caixa", "Obrigatoriedade do reconhecimento facial na ativação do chip", "Popularização do e-SIM", "Concorrência de novos players e dos próprios contratantes no atendimento do PDV"]};
+var SWOT_META = {
+  forcas:{label:"Força", c:"#0a7a3a", soft:"#e2f8ea"},
+  fraquezas:{label:"Fraqueza", c:"#b42318", soft:"#fbe6e6"},
+  oportunidades:{label:"Oportunidade", c:"#14548c", soft:"#e4edf6"},
+  ameacas:{label:"Ameaça", c:"#8a5a00", soft:"#fdf0dc"}
+};
+var SWOT_ORDER = ["forcas","fraquezas","oportunidades","ameacas"];
+var swotEdits = {};
+var OBJ_LIST = [{"code": "F1", "persp": "Financeiro", "text": "Alcançar Ebitda de R$ 75,9 milhões"}, {"code": "F2", "persp": "Financeiro", "text": "Margem Ebitda/ROL superior a 23% (DRE CPC 47)"}, {"code": "F3", "persp": "Financeiro", "text": "Índice de Liquidez Corrente igual ou maior do que 1,0 (Debentures, Compensação da Lei Perse, Tese do Século e resultados)"}, {"code": "F4", "persp": "Financeiro", "text": "Atingir mais de R$ 20 milhões em Ebitda com produtos não telecom"}, {"code": "F5", "persp": "Financeiro", "text": "Comprometimento máximo de 65% da margem de contribuição com o Custo Fixo"}, {"code": "P1", "persp": "Processos Internos", "text": "Implantação e Formatação do SOC (Security Operations Center)"}, {"code": "P2", "persp": "Processos Internos", "text": "Modelo de governança da Viabilizar o Seguro Cibernético"}, {"code": "P3", "persp": "Processos Internos", "text": "Consolidar o projeto da Máquina de Vendas, como o canal digital da RV"}, {"code": "P4", "persp": "Processos Internos", "text": "Ampliar nosso portfólio com as operadores de telefonia"}, {"code": "P5", "persp": "Processos Internos", "text": "RV Pay operante com conta digital (migração da folha BMRV)"}, {"code": "C1", "persp": "Cliente e Cliente do Cliente", "text": "Mais de 25k de operantes de ADQ em D-30"}, {"code": "C2", "persp": "Cliente e Cliente do Cliente", "text": "Mais de 1K de clientes de COBAN"}, {"code": "C3", "persp": "Cliente e Cliente do Cliente", "text": "Mais 15 milhões de chip vendidos"}, {"code": "C4", "persp": "Cliente e Cliente do Cliente", "text": "Mais 70k de operantes RCV (recargas, chip e verticais) em D-30"}, {"code": "C5", "persp": "Cliente e Cliente do Cliente", "text": "Operar algum contrato telecom fora do pré-pago"}, {"code": "A1", "persp": "Aprendizado e Conhecimento", "text": "Fortalecer a Marca RV Digital (contemplar inclusive a celebração dos 25 anos da RV)"}, {"code": "A2", "persp": "Aprendizado e Conhecimento", "text": "Turnover máximo de 20% a.a."}, {"code": "A3", "persp": "Aprendizado e Conhecimento", "text": "Implantar programa da trilha de sucessores para o nível gerencial"}, {"code": "A4", "persp": "Aprendizado e Conhecimento", "text": "Lançar a 4ª edição do PDGA"}, {"code": "A5", "persp": "Aprendizado e Conhecimento", "text": "Operação da Máquina de Vendas"}];
+var isAdmin = false, editingDescId = null, editingObjId = null, descOpen = {}, relOpen = {};
+document.addEventListener("toggle", function(e){ var d = e.target; if(d && d.classList && d.classList.contains("swot-rel")) relOpen[d.getAttribute("data-id")] = d.open; }, true);
+
+function swotText(q, n){
+  var id = "final_" + q + "_" + n;
+  return swotEdits[id] !== undefined ? swotEdits[id] : (SWOT_FINAL[q] && SWOT_FINAL[q][n-1]) || "";
+}
+function swotLinksFor(it){
+  if(TRACK !== "projetos") return [];
+  var refs = SWOT_LINKS[it.id];
+  if(!refs){
+    // grupo personalizado ou projeto desfeito de um grupo: junta as relações dos projetos de origem
+    var defOf = {}, oidByTitle = {}, oids = [];
+    PROJ.orig.forEach(function(o){ oidByTitle[o.title] = o.oid; });
+    PROJ.groups.forEach(function(g){ g.members.forEach(function(m){ defOf[m] = g.id; }); });
+    PROJ.orig.forEach(function(o){ if(!defOf[o.oid]) defOf[o.oid] = o.sid; });
+    if(it.originals) it.originals.forEach(function(x){ if(oidByTitle[x.text]) oids.push(oidByTitle[x.text]); });
+    else PROJ.orig.forEach(function(o){ if(o.sid === it.id) oids.push(o.oid); });
+    var seen = {}; refs = [];
+    oids.forEach(function(oid){ (SWOT_LINKS[defOf[oid]] || []).forEach(function(r){ if(!seen[r]){ seen[r] = 1; refs.push(r); } }); });
+  }
+  return refs.slice().sort(function(a,b){
+    var qa = a.split(":"), qb = b.split(":");
+    return (SWOT_ORDER.indexOf(qa[0]) - SWOT_ORDER.indexOf(qb[0])) || (parseInt(qa[1],10) - parseInt(qb[1],10));
+  });
+}
+function swotRelBlock(it){
+  var refs = swotLinksFor(it);
+  if(!refs.length) return "";
+  var lis = refs.map(function(r){
+    var p = r.split(":"), m = SWOT_META[p[0]];
+    return '<li><span class="rel-q" style="color:'+m.c+'; background:'+m.soft+';">'+m.label+'</span><span>'+escapeHtml(swotText(p[0], parseInt(p[1],10)))+'</span></li>';
+  }).join("");
+  return '<details class="orig swot-rel" data-id="'+it.id+'"'+(relOpen[it.id] ? ' open' : '')+'><summary>Ver '+(refs.length === 1 ? 'o item do SWOT definido relacionado' : 'os '+refs.length+' itens do SWOT definido relacionados')+'</summary>'
+    + '<ul>'+lis+'</ul><div class="rel-note">Relações sugeridas a partir do conteúdo do projeto; servem de contexto e não alteram a votação.</div></details>';
+}
+function descBlockFor(it){
+  if(TRACK !== "projetos") return null;
+  var has = !!it.description;
+  if(!has && !isAdmin) return "";
+  var open = descOpen[it.id] !== false;
+  var editing = isAdmin && editingDescId === it.id;
+  var flag = it.desc_label ? '<span class="desc-flag">'+escapeHtml(it.desc_label)+'</span>' : "";
+  var bar = '<div class="desc-bar">';
+  if(has) bar += '<button type="button" class="desc-toggle" data-a="dtoggle" data-id="'+it.id+'" aria-expanded="'+(open?'true':'false')+'"><span class="dt-ar">&#9662;</span> Descri&ccedil;&atilde;o do projeto</button>';
+  else bar += '<span style="font-size:12.5px; color:var(--ink-soft);">Sem descri&ccedil;&atilde;o</span>';
+  if(isAdmin && !editing) bar += '<button type="button" class="desc-edit-btn" data-a="dedit" data-id="'+it.id+'">&#9998; '+(has ? 'Editar descri&ccedil;&atilde;o' : 'Adicionar descri&ccedil;&atilde;o')+'</button>';
+  bar += '</div>';
+  var body = "";
+  if(editing){
+    body = '<div class="desc-form"><textarea rows="6" id="desc-ta-'+it.id+'">'+escapeHtml(it.description || "")+'</textarea>'
+      + '<div class="desc-actions"><button type="button" class="primary" data-a="dsave" data-id="'+it.id+'">Salvar</button>'
+      + '<button type="button" data-a="dcancel" data-id="'+it.id+'">Cancelar</button>'
+      + '<button type="button" data-a="dreset" data-id="'+it.id+'" title="Volta ao texto original/sugerido">Restaurar original</button>'
+      + '<span class="desc-status" id="desc-st-'+it.id+'"></span></div></div>';
+    open = true;
+  } else if(has){
+    body = '<p class="item-desc">'+flag+escapeHtml(it.description)+'</p>';
+  }
+  return '<div class="desc-wrap'+(open?'':' collapsed')+'" data-id="'+it.id+'">'+bar+body+'</div>';
+}
+function objBlockFor(it){
+  if(TRACK !== "projetos") return null;
+  var editing = isAdmin && editingObjId === it.id;
+  if(!it.objetivo && !isAdmin) return "";
+  var line = '<p class="item-objetivo"><b>Objetivo 2027:</b> '+(it.objetivo ? escapeHtml(it.objetivo) : '<i>sem objetivo definido</i>');
+  if(isAdmin && !editing) line += '<button type="button" class="desc-edit-btn" data-a="oedit" data-id="'+it.id+'">&#9998; Alterar</button>';
+  line += '</p>';
+  if(!editing) return line;
+  var html = '<div class="obj-picker">', last = "";
+  OBJ_LIST.forEach(function(o, i){
+    if(o.persp !== last){ html += '<h4>'+escapeHtml(o.persp)+'</h4>'; last = o.persp; }
+    html += '<button type="button" class="obj-opt'+(o.text === it.objetivo ? ' cur' : '')+'" data-a="osel" data-id="'+it.id+'" data-i="'+i+'"><span class="oc">'+escapeHtml(o.code)+'</span><span>'+escapeHtml(o.text)+'</span></button>';
+  });
+  html += '<div class="obj-actions"><button type="button" data-a="ocancel" data-id="'+it.id+'">Cancelar</button>'
+    + '<button type="button" data-a="onone" data-id="'+it.id+'">Sem objetivo</button>'
+    + '<button type="button" data-a="oreset" data-id="'+it.id+'" title="Volta ao objetivo original da planilha/convergência">Restaurar original</button>'
+    + '<span class="desc-status" id="obj-st-'+it.id+'"></span></div></div>';
+  return line + html;
+}
+async function saveObj(id, mode, text){
+  var it = ITEMS.filter(function(x){ return x.id === id; })[0];
+  var st = document.getElementById("obj-st-"+id);
+  if(!it || !sb) return;
+  if(st){ st.textContent = "Salvando…"; st.className = "desc-status"; }
+  try{
+    var res;
+    if(mode === "reset"){
+      res = await sb.from("item_edits").delete().eq("track", TRACK).eq("stage", STAGE).eq("quadrant", QUAD).eq("item_id", "obj:"+id);
+    } else {
+      res = await sb.from("item_edits").upsert(
+        { track: TRACK, stage: STAGE, quadrant: QUAD, item_id: "obj:"+id, title: text, updated_at: new Date().toISOString() },
+        { onConflict: "track,stage,quadrant,item_id" });
+    }
+    if(res.error) throw res.error;
+    editingObjId = null;
+    await loadItemChanges();
+    rerenderItems();
+    showFlash("Objetivo 2027 atualizado.", false);
+  }catch(err){
+    if(st){ st.textContent = "Erro ao salvar (" + (err && err.message ? err.message : "desconhecido") + ")."; st.className = "desc-status err"; }
+  }
+}
+function rerenderItems(){ renderItems(); paintMyVotes(); }
+function setAdmin(v){
+  v = !!v;
+  if(v === isAdmin) return;
+  isAdmin = v;
+  if(!v){ editingDescId = null; editingObjId = null; }
+  rerenderItems();
+}
+async function initAdminSession(){
+  if(TRACK !== "projetos" || !sb || !sb.auth) return;
+  try{
+    var r = await sb.auth.getSession();
+    setAdmin(r && r.data && r.data.session);
+    sb.auth.onAuthStateChange(function(ev, sess){ setAdmin(sess); });
+  }catch(e){ console.warn("sessão admin indisponível", e); }
+}
+async function loadSwotEdits(){
+  if(TRACK !== "projetos" || !sb) return;
+  try{
+    var r = await sb.from("item_edits").select("item_id,title").eq("track","swot").eq("stage","telecom").like("item_id","final_%");
+    if(r.error) return;
+    var next = {}; (r.data || []).forEach(function(x){ next[x.item_id] = x.title; });
+    if(JSON.stringify(next) !== JSON.stringify(swotEdits)){ swotEdits = next; if(!editingDescId && !editingObjId) rerenderItems(); }
+  }catch(e){ console.warn("swot edits load failed", e); }
+}
+async function saveDesc(id, mode){
+  var it = ITEMS.filter(function(x){ return x.id === id; })[0];
+  var st = document.getElementById("desc-st-"+id);
+  if(!it || !sb) return;
+  var text = null;
+  if(mode === "save"){ text = (document.getElementById("desc-ta-"+id).value || "").trim(); }
+  if(st){ st.textContent = "Salvando…"; st.className = "desc-status"; }
+  try{
+    var res = await sb.from("item_edits").upsert(
+      { track: TRACK, stage: STAGE, quadrant: QUAD, item_id: id, title: it.title, description: text, updated_at: new Date().toISOString() },
+      { onConflict: "track,stage,quadrant,item_id" });
+    if(res.error) throw res.error;
+    editingDescId = null;
+    await loadItemChanges();
+    rerenderItems();
+    showFlash(mode === "save" ? "Descrição salva." : "Descrição original restaurada.", false);
+  }catch(err){
+    if(st){ st.textContent = "Erro ao salvar (" + (err && err.message ? err.message : "desconhecido") + ")."; st.className = "desc-status err"; }
+  }
+}
+document.addEventListener("click", function(e){
+  var b = e.target.closest && e.target.closest("button[data-a]");
+  if(!b) return;
+  var a = b.getAttribute("data-a"), id = b.getAttribute("data-id");
+  if(a === "dtoggle"){
+    var wrap = b.closest(".desc-wrap");
+    var nowOpen = wrap.classList.contains("collapsed");
+    wrap.classList.toggle("collapsed", !nowOpen);
+    b.setAttribute("aria-expanded", nowOpen ? "true" : "false");
+    descOpen[id] = nowOpen;
+  } else if(a === "dedit"){ editingDescId = id; rerenderItems(); var ta = document.getElementById("desc-ta-"+id); if(ta) ta.focus(); }
+  else if(a === "dcancel"){ editingDescId = null; rerenderItems(); }
+  else if(a === "dsave"){ saveDesc(id, "save"); }
+  else if(a === "dreset"){ saveDesc(id, "reset"); }
+  else if(a === "oedit"){ editingObjId = id; rerenderItems(); }
+  else if(a === "ocancel"){ editingObjId = null; rerenderItems(); }
+  else if(a === "osel"){ saveObj(id, "set", OBJ_LIST[parseInt(b.getAttribute("data-i"),10)].text); }
+  else if(a === "onone"){ saveObj(id, "set", ""); }
+  else if(a === "oreset"){ saveObj(id, "reset"); }
+});
 
 function renderItem(it, idx){
   var typeChip = it.type === "convergencia"
@@ -918,13 +1133,18 @@ function renderItem(it, idx){
   // ao qual o projeto está atrelado também aparece direto no card.
   var descFlag = it.desc_label ? '<span class="desc-flag">'+escapeHtml(it.desc_label)+'</span>' : "";
   var descBlock = it.description ? '<p class="item-desc">'+descFlag+escapeHtml(it.description)+'</p>' : "";
+  var descCustom = descBlockFor(it);
+  if(descCustom !== null) descBlock = descCustom;
   var objBlock = it.objetivo ? '<p class="item-objetivo"><b>Objetivo 2027:</b> '+escapeHtml(it.objetivo)+'</p>' : "";
+  var objCustom = objBlockFor(it);
+  if(objCustom !== null) objBlock = objCustom;
   return '<div class="item'+(it.migrated?' is-migrated':'')+'" id="item-'+it.id+'" data-id="'+it.id+'">'
     + '<div class="item-top"><div class="item-idx mono">#'+idx+'</div><div class="item-title">'+escapeHtml(it.title)+'</div></div>'
     + '<div class="item-meta">'+migChip+typeChip+originChips+divisionChips+'</div>'
     + descBlock
     + objBlock
     + details
+    + swotRelBlock(it)
     + '<div class="vote-row">'
     +   voteBtn(it.id,5,"Concordo totalmente")
     +   voteBtn(it.id,3,"Concordo parcialmente")
@@ -1121,6 +1341,7 @@ function applyChanges(baseItems, editMap, addedList, removedSet){
     var clone = JSON.parse(JSON.stringify(it));
     if(editMap[clone.id] !== undefined) clone.title = editMap[clone.id];
     if(editMap["d:"+clone.id] !== undefined){ clone.description = editMap["d:"+clone.id]; clone.desc_label = ""; }
+    if(editMap["obj:"+clone.id] !== undefined){ clone.objetivo = editMap["obj:"+clone.id]; }
     return clone;
   });
   (addedList || []).forEach(function(r){
@@ -1217,9 +1438,9 @@ async function loadItemChanges(){
     var nextIds = next.map(function(i){ return i.id; }).join("|");
     var titlesChanged = next.some(function(it){
       var prev = ITEMS.filter(function(p){ return p.id === it.id; })[0];
-      return !prev || prev.title !== it.title || (prev.description || "") !== (it.description || "");
+      return !prev || prev.title !== it.title || (prev.description || "") !== (it.description || "") || (prev.objetivo || "") !== (it.objetivo || "");
     });
-    if(prevIds !== nextIds || titlesChanged){
+    if((prevIds !== nextIds || titlesChanged) && !editingDescId && !editingObjId){
       ITEMS = next;
       renderItems();
       paintMyVotes();
@@ -1244,8 +1465,11 @@ if(!sb){
 } else {
   loadConfig();
   loadItemChanges();
+  initAdminSession();
+  loadSwotEdits();
   setInterval(loadConfig, 20000);
   setInterval(loadItemChanges, 20000);
+  setInterval(loadSwotEdits, 60000);
 }
 
 }catch(e){ fatalConfigError(e); }
