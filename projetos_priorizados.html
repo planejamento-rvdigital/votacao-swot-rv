@@ -305,7 +305,13 @@ details.swot-rel .rel-note{margin-top:6px; font-size:12px; font-style:italic; co
 .fs-item .fs-text{flex:1;}
 .fs-edited{font-size:11px; font-weight:700; color:#8a5a00; background:#fdf0dc; border-radius:999px; padding:2px 8px; flex:none;}
 .fs-edit-btn{flex:none; padding:4px 12px;}
-.fs-item.editing{flex-wrap:wrap;} .fs-item.editing textarea{flex:1; min-width:200px; border:1px solid var(--line); border-radius:8px; padding:8px 10px; font:inherit; font-size:14px; resize:vertical;}
+.fs-add{display:flex; gap:8px; margin:10px 0 2px;}
+.fs-add input{flex:1; min-width:0; border:1px dashed var(--line); border-radius:8px; padding:8px 10px; font:inherit; font-size:13.5px;}
+@media print{ .fs-add{display:none !important;} }
+.fs-item.editing{flex-wrap:wrap;} .fs-add{display:flex; gap:8px; margin:10px 0 2px;}
+.fs-add input{flex:1; min-width:0; border:1px dashed var(--line); border-radius:8px; padding:8px 10px; font:inherit; font-size:13.5px;}
+@media print{ .fs-add{display:none !important;} }
+.fs-item.editing textarea{flex:1; min-width:200px; border:1px solid var(--line); border-radius:8px; padding:8px 10px; font:inherit; font-size:14px; resize:vertical;}
 .fs-actions-row{flex-basis:100%; display:flex; gap:8px; flex-wrap:wrap; align-items:center; padding-left:32px;}
 .fs-total{padding:10px 16px 12px; font-size:13px; color:var(--ink-soft); border-top:1px solid var(--line); background:var(--surface-2);}
 .fs-foot{font-size:12px; color:var(--ink-soft); margin-top:16px; line-height:1.5;}
@@ -336,6 +342,9 @@ details.swot-rel .rel-note{margin-top:6px; font-size:12px; font-style:italic; co
 .sv-cm small{display:block; color:var(--ink-soft); margin-top:6px; font-size:12px;}
 @media(max-width:640px){ .sv-res-q{flex-wrap:wrap;} .sv-bar{flex:1 1 100%;} }
 @media print{ .sv-send button{display:none !important;} }
+.pr-add{display:flex; gap:8px; flex-wrap:wrap; padding:10px 16px; background:#f6f8fb; border-top:1px dashed var(--line); border-bottom:1px dashed var(--line); list-style:none;}
+.pr-add input{flex:1 1 200px; min-width:0; border:1px solid var(--line); border-radius:8px; padding:8px 10px; font:inherit; font-size:13.5px;}
+@media print{ .pr-add{display:none !important;} }
 .pr-card{background:var(--surface); border:1px solid var(--line); border-radius:12px; overflow:hidden; box-shadow:var(--shadow);}
 .pr-head{display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; padding:12px 16px; background:#f3e6f7; color:#6a2a80; border-bottom:2px solid #7a2e8a; font-weight:700; font-size:15px;}
 .pr-ctrl{display:flex; align-items:center; gap:8px; font-size:12.5px; font-weight:600; color:var(--ink);}
@@ -538,6 +547,10 @@ details.swot-rel .rel-note{margin-top:6px; font-size:12px; font-style:italic; co
 
 .stage-grid{ display:grid; gap:18px; margin-top:6px; grid-template-columns:1fr; }
 @media (min-width:640px){ .stage-grid{ grid-template-columns:1fr 1fr; } }
+.menu-sec{ margin:0 0 26px; }
+.menu-sec-t{ font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--navy); font-weight:800; margin:0 0 2px; padding-bottom:6px; border-bottom:2px solid var(--line); }
+.menu-sec-s{ font-size:13px; color:var(--ink-soft); margin:6px 0 10px; }
+@media (min-width:640px){ .stage-grid.one{ grid-template-columns:1fr 1fr; } .stage-grid.one .stage-card{ grid-column:1; } }
 .stage-card{
   display:block; text-decoration:none; text-align:left; cursor:pointer;
   background:var(--surface); border:1px solid var(--line); border-top:4px solid var(--mc-accent);
@@ -629,7 +642,7 @@ footer.pagefoot{ background:var(--surface); border-top:1px solid var(--line); ma
     <button class="cv-btn primary" id="fs-login-go" type="button">Entrar</button>
     <span class="cv-status err" id="fs-login-err"></span>
   </div>
-  <div class="fs-edit-note" id="fs-edit-note" style="display:none;">Modo de edi&ccedil;&atilde;o ativo: use <b>&#9650; &#9660;</b> para reordenar, <b>Editar</b> para ajustar o texto e o campo <b>Priorizados</b> para mudar o corte. Tudo &eacute; salvo automaticamente para todos.<span class="pr-save" id="pr-save"></span></div>
+  <div class="fs-edit-note" id="fs-edit-note" style="display:none;">Modo de edi&ccedil;&atilde;o ativo: use <b>&#9650; &#9660;</b> para reordenar, <b>Editar</b> para ajustar o texto, <b>Excluir</b> para remover um projeto priorizado, <b>+ Incluir</b> para acrescentar e o campo <b>Priorizados</b> para mudar o corte. Tudo &eacute; salvo automaticamente para todos.<span class="pr-save" id="pr-save"></span></div>
 
   <div class="pr-card">
     <div class="pr-head"><span>&#127942; Projetos 2027 &mdash; ordem de prioridade</span>
@@ -669,9 +682,13 @@ function clean(st){
 }
 
 function render(){
-  var items = state.items, top = state.top, html = "";
+  var items = state.items, top = state.top, html = "", addDone = false;
+  var addRow = '<li class="pr-add"><input type="text" id="pr-at" maxlength="200" placeholder="Novo projeto priorizado…"><input type="text" id="pr-ar" maxlength="120" placeholder="Responsável"><button class="cv-btn primary" data-a="add" type="button">+ Incluir nos priorizados</button></li>';
   items.forEach(function(it, i){
-    if(i === top && top > 0 && top < items.length) html += '<li class="pr-cut">Linha de corte &middot; abaixo: n&atilde;o priorizados</li>';
+    if(i === top){
+      if(canEdit){ html += addRow; addDone = true; }
+      if(top > 0 && top < items.length) html += '<li class="pr-cut">Linha de corte &middot; abaixo: n&atilde;o priorizados</li>';
+    }
     var yes = i < top;
     if(canEdit && editingIdx === i){
       html += '<li class="pr-item editing'+(yes ? '' : ' pr-no')+'"><span class="pr-n">'+(i+1)+'</span><div class="pr-edit">'
@@ -685,9 +702,10 @@ function render(){
       + '<span class="pr-tag '+(yes ? 'yes' : 'no')+'">'+(yes ? '&#9733; Priorizado' : 'N&atilde;o priorizado')+'</span>'
       + (it[1] ? '<span class="pr-resp">'+esc(it[1])+'</span>' : '')
       + '</div>'
-      + (canEdit ? '<div class="pr-tools"><button class="cv-btn" data-a="up" data-i="'+i+'" title="Subir"'+(i===0?' disabled':'')+'>&#9650;</button><button class="cv-btn" data-a="down" data-i="'+i+'" title="Descer"'+(i===items.length-1?' disabled':'')+'>&#9660;</button><button class="cv-btn" data-a="edit" data-i="'+i+'">Editar</button></div>' : '')
+      + (canEdit ? '<div class="pr-tools"><button class="cv-btn" data-a="up" data-i="'+i+'" title="Subir"'+(i===0?' disabled':'')+'>&#9650;</button><button class="cv-btn" data-a="down" data-i="'+i+'" title="Descer"'+(i===items.length-1?' disabled':'')+'>&#9660;</button><button class="cv-btn" data-a="edit" data-i="'+i+'">Editar</button>'+(yes ? '<button class="cv-btn danger" data-a="del" data-i="'+i+'" title="Excluir da lista de priorizados">Excluir</button>' : '')+'</div>' : '')
       + '</li>';
   });
+  if(canEdit && !addDone) html += addRow;
   document.getElementById("pr-list").innerHTML = html;
   var yesN = Math.min(top, items.length), noN = items.length - yesN;
   document.getElementById("pr-sum").innerHTML = '<span class="fs-pill" style="--qc:#0a7a3a"><i></i>Priorizados: <b>'+yesN+'</b></span><span class="fs-pill" style="--qc:#9aa3b2"><i></i>N&atilde;o priorizados: <b>'+noN+'</b></span><span class="fs-pill tot">Total: <b>'+items.length+'</b></span>';
@@ -718,6 +736,8 @@ function mutate(fn){ fn(); state = clean(state); render(); persist(); }
 
 async function load(){
   if(!sb || editingIdx !== null || pendingSaves > 0) return;
+  var ai = document.getElementById("pr-at"), ar = document.getElementById("pr-ar");
+  if((ai && (ai.value || ai === document.activeElement)) || (ar && (ar.value || ar === document.activeElement))) return;
   try{
     var r = await sb.from("item_edits").select("title").eq("track","projetos").eq("stage","telecom").eq("quadrant","geral").eq("item_id", KEY).maybeSingle();
     if(r.error || !r.data || !r.data.title) return;
@@ -733,6 +753,15 @@ document.getElementById("pr-list").addEventListener("click", function(e){
   else if(a === "down" && i < state.items.length - 1) mutate(function(){ var t = state.items[i]; state.items[i] = state.items[i+1]; state.items[i+1] = t; });
   else if(a === "edit"){ editingIdx = i; render(); }
   else if(a === "cancel"){ editingIdx = null; render(); }
+  else if(a === "add"){
+    var nt = (document.getElementById("pr-at").value || "").trim(), nr = (document.getElementById("pr-ar").value || "").trim();
+    if(!nt){ document.getElementById("pr-at").focus(); return; }
+    mutate(function(){ state.items.splice(state.top, 0, [nt, nr]); state.top += 1; });
+  }
+  else if(a === "del" && i < state.top){
+    if(!confirm("Excluir este projeto da lista de priorizados?\n\n" + state.items[i][0])) return;
+    editingIdx = null; mutate(function(){ state.items.splice(i, 1); state.top -= 1; });
+  }
   else if(a === "save"){
     var t = (document.getElementById("pr-et").value || "").trim(), r = (document.getElementById("pr-er").value || "").trim();
     if(!t){ document.getElementById("pr-et").focus(); return; }

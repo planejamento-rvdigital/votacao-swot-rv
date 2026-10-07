@@ -305,7 +305,13 @@ details.swot-rel .rel-note{margin-top:6px; font-size:12px; font-style:italic; co
 .fs-item .fs-text{flex:1;}
 .fs-edited{font-size:11px; font-weight:700; color:#8a5a00; background:#fdf0dc; border-radius:999px; padding:2px 8px; flex:none;}
 .fs-edit-btn{flex:none; padding:4px 12px;}
-.fs-item.editing{flex-wrap:wrap;} .fs-item.editing textarea{flex:1; min-width:200px; border:1px solid var(--line); border-radius:8px; padding:8px 10px; font:inherit; font-size:14px; resize:vertical;}
+.fs-add{display:flex; gap:8px; margin:10px 0 2px;}
+.fs-add input{flex:1; min-width:0; border:1px dashed var(--line); border-radius:8px; padding:8px 10px; font:inherit; font-size:13.5px;}
+@media print{ .fs-add{display:none !important;} }
+.fs-item.editing{flex-wrap:wrap;} .fs-add{display:flex; gap:8px; margin:10px 0 2px;}
+.fs-add input{flex:1; min-width:0; border:1px dashed var(--line); border-radius:8px; padding:8px 10px; font:inherit; font-size:13.5px;}
+@media print{ .fs-add{display:none !important;} }
+.fs-item.editing textarea{flex:1; min-width:200px; border:1px solid var(--line); border-radius:8px; padding:8px 10px; font:inherit; font-size:14px; resize:vertical;}
 .fs-actions-row{flex-basis:100%; display:flex; gap:8px; flex-wrap:wrap; align-items:center; padding-left:32px;}
 .fs-total{padding:10px 16px 12px; font-size:13px; color:var(--ink-soft); border-top:1px solid var(--line); background:var(--surface-2);}
 .fs-foot{font-size:12px; color:var(--ink-soft); margin-top:16px; line-height:1.5;}
@@ -336,6 +342,9 @@ details.swot-rel .rel-note{margin-top:6px; font-size:12px; font-style:italic; co
 .sv-cm small{display:block; color:var(--ink-soft); margin-top:6px; font-size:12px;}
 @media(max-width:640px){ .sv-res-q{flex-wrap:wrap;} .sv-bar{flex:1 1 100%;} }
 @media print{ .sv-send button{display:none !important;} }
+.pr-add{display:flex; gap:8px; flex-wrap:wrap; padding:10px 16px; background:#f6f8fb; border-top:1px dashed var(--line); border-bottom:1px dashed var(--line); list-style:none;}
+.pr-add input{flex:1 1 200px; min-width:0; border:1px solid var(--line); border-radius:8px; padding:8px 10px; font:inherit; font-size:13.5px;}
+@media print{ .pr-add{display:none !important;} }
 .pr-card{background:var(--surface); border:1px solid var(--line); border-radius:12px; overflow:hidden; box-shadow:var(--shadow);}
 .pr-head{display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; padding:12px 16px; background:#f3e6f7; color:#6a2a80; border-bottom:2px solid #7a2e8a; font-weight:700; font-size:15px;}
 .pr-ctrl{display:flex; align-items:center; gap:8px; font-size:12.5px; font-weight:600; color:var(--ink);}
@@ -538,6 +547,10 @@ details.swot-rel .rel-note{margin-top:6px; font-size:12px; font-style:italic; co
 
 .stage-grid{ display:grid; gap:18px; margin-top:6px; grid-template-columns:1fr; }
 @media (min-width:640px){ .stage-grid{ grid-template-columns:1fr 1fr; } }
+.menu-sec{ margin:0 0 26px; }
+.menu-sec-t{ font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--navy); font-weight:800; margin:0 0 2px; padding-bottom:6px; border-bottom:2px solid var(--line); }
+.menu-sec-s{ font-size:13px; color:var(--ink-soft); margin:6px 0 10px; }
+@media (min-width:640px){ .stage-grid.one{ grid-template-columns:1fr 1fr; } .stage-grid.one .stage-card{ grid-column:1; } }
 .stage-card{
   display:block; text-decoration:none; text-align:left; cursor:pointer;
   background:var(--surface); border:1px solid var(--line); border-top:4px solid var(--mc-accent);
@@ -989,7 +1002,7 @@ function renderItems(){
 
 // ---- Projetos: relações com o SWOT definido + edição/expansão da descrição ----
 var SWOT_LINKS = {"proj_c1": ["forcas:1", "oportunidades:2", "ameacas:4", "ameacas:5"], "proj_c2": ["fraquezas:1", "oportunidades:4"], "proj_c3": ["oportunidades:4", "fraquezas:2"], "proj_c4": ["oportunidades:4", "fraquezas:1"], "proj_c5": ["ameacas:1", "fraquezas:3", "fraquezas:5"], "proj_c6": ["oportunidades:2", "fraquezas:2", "fraquezas:5"], "proj_c7": ["fraquezas:1", "oportunidades:1", "ameacas:2", "forcas:2"], "proj_c8": ["forcas:5", "forcas:1", "fraquezas:1"], "proj_c9": ["oportunidades:3", "oportunidades:4", "forcas:1", "ameacas:4"], "proj_s1": ["forcas:1", "fraquezas:1"], "proj_s3": ["oportunidades:4", "oportunidades:5", "ameacas:5"], "proj_s4": ["forcas:3", "fraquezas:4", "oportunidades:2"], "proj_s7": ["oportunidades:3"], "proj_s8": ["fraquezas:4", "forcas:4"], "proj_s10": ["fraquezas:2", "forcas:5"], "proj_s11": ["ameacas:5"], "proj_s13": ["ameacas:1", "fraquezas:5"], "proj_s14": ["ameacas:1", "fraquezas:3"], "proj_s15": ["fraquezas:2"], "proj_s16": ["forcas:1"], "proj_s17": ["forcas:2", "oportunidades:1", "oportunidades:5"], "proj_s18": ["fraquezas:3", "fraquezas:5"], "proj_s19": ["ameacas:2", "oportunidades:1", "forcas:2"]};
-var SWOT_FINAL = {"forcas": ["Capilaridade Física Nacional", "Planejamento tributário", "Força de vendas com atendimento presencial", "Gestão focada no resultado", "Relacionamento com os Contratantes"], "fraquezas": ["Estrutura de Capital", "Gestão de Cadastro dos Clientes", "Atraso tecnológico do Cellcard (tecnologia obsoleta)", "Turnover elevado da equipe de vendas", "Limitação de capacity do time de TI para desenvolvimento de novas ferramentas"], "oportunidades": ["Créditos tributários e benefícios fiscais (Reforma/Perse/Tese)", "Utilização de IA como alavanca de produtividade, eficiência e escala", "Novos negócios no mercado Telecom (fora pré)", "Expansão de serviços financeiros, desenvolvendo parcerias com novos adquirentes/subadquirentes", "Expansão de parcerias com empresas de produtos físicos", "Expansão do Kiddle"], "ameacas": ["Crimes cibernéticos", "Reforma Tributária/CBS: riscos regulatórios, fiscais e de fluxo de caixa", "Obrigatoriedade do reconhecimento facial na ativação do chip", "Popularização do e-SIM", "Concorrência de novos players e dos próprios contratantes no atendimento do PDV"]};
+var SWOT_FINAL = {"forcas": ["Capilaridade Física Nacional", "Planejamento tributário", "Força de vendas com atendimento presencial", "Gestão focada no resultado", "Relacionamento com os Contratantes"], "fraquezas": ["Estrutura de Capital", "Gestão de Cadastro dos Clientes", "Atraso tecnológico do Cellcard (tecnologia obsoleta)", "Turnover elevado da equipe de vendas", "Limitação de capacity do time de TI para desenvolvimento de novas ferramentas"], "oportunidades": ["Créditos tributários e benefícios fiscais (Reforma/Perse/Tese)", "Utilização de IA como alavanca de produtividade, eficiência e escala", "Novos negócios no mercado Telecom (fora pré)", "Expansão de serviços financeiros, desenvolvendo parcerias com novos adquirentes/subadquirentes", "Expansão de parcerias com empresas de produtos físicos", "Expansão do Kiddle"], "ameacas": ["Crimes cibernéticos", "Reforma Tributária/CBS: riscos regulatórios, fiscais e de fluxo de caixa", "Obrigatoriedade do reconhecimento facial na ativação do chip", "Popularização do e-SIM", "Concorrência de novos players e dos próprios contratantes no atendimento do PDV", "Fim da Escala 6x1 (Impacto DSR)"]};
 var SWOT_META = {
   forcas:{label:"Força", c:"#0a7a3a", soft:"#e2f8ea"},
   fraquezas:{label:"Fraqueza", c:"#b42318", soft:"#fbe6e6"},

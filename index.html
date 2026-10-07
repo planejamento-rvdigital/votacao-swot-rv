@@ -305,7 +305,13 @@ details.swot-rel .rel-note{margin-top:6px; font-size:12px; font-style:italic; co
 .fs-item .fs-text{flex:1;}
 .fs-edited{font-size:11px; font-weight:700; color:#8a5a00; background:#fdf0dc; border-radius:999px; padding:2px 8px; flex:none;}
 .fs-edit-btn{flex:none; padding:4px 12px;}
-.fs-item.editing{flex-wrap:wrap;} .fs-item.editing textarea{flex:1; min-width:200px; border:1px solid var(--line); border-radius:8px; padding:8px 10px; font:inherit; font-size:14px; resize:vertical;}
+.fs-add{display:flex; gap:8px; margin:10px 0 2px;}
+.fs-add input{flex:1; min-width:0; border:1px dashed var(--line); border-radius:8px; padding:8px 10px; font:inherit; font-size:13.5px;}
+@media print{ .fs-add{display:none !important;} }
+.fs-item.editing{flex-wrap:wrap;} .fs-add{display:flex; gap:8px; margin:10px 0 2px;}
+.fs-add input{flex:1; min-width:0; border:1px dashed var(--line); border-radius:8px; padding:8px 10px; font:inherit; font-size:13.5px;}
+@media print{ .fs-add{display:none !important;} }
+.fs-item.editing textarea{flex:1; min-width:200px; border:1px solid var(--line); border-radius:8px; padding:8px 10px; font:inherit; font-size:14px; resize:vertical;}
 .fs-actions-row{flex-basis:100%; display:flex; gap:8px; flex-wrap:wrap; align-items:center; padding-left:32px;}
 .fs-total{padding:10px 16px 12px; font-size:13px; color:var(--ink-soft); border-top:1px solid var(--line); background:var(--surface-2);}
 .fs-foot{font-size:12px; color:var(--ink-soft); margin-top:16px; line-height:1.5;}
@@ -336,6 +342,9 @@ details.swot-rel .rel-note{margin-top:6px; font-size:12px; font-style:italic; co
 .sv-cm small{display:block; color:var(--ink-soft); margin-top:6px; font-size:12px;}
 @media(max-width:640px){ .sv-res-q{flex-wrap:wrap;} .sv-bar{flex:1 1 100%;} }
 @media print{ .sv-send button{display:none !important;} }
+.pr-add{display:flex; gap:8px; flex-wrap:wrap; padding:10px 16px; background:#f6f8fb; border-top:1px dashed var(--line); border-bottom:1px dashed var(--line); list-style:none;}
+.pr-add input{flex:1 1 200px; min-width:0; border:1px solid var(--line); border-radius:8px; padding:8px 10px; font:inherit; font-size:13.5px;}
+@media print{ .pr-add{display:none !important;} }
 .pr-card{background:var(--surface); border:1px solid var(--line); border-radius:12px; overflow:hidden; box-shadow:var(--shadow);}
 .pr-head{display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; padding:12px 16px; background:#f3e6f7; color:#6a2a80; border-bottom:2px solid #7a2e8a; font-weight:700; font-size:15px;}
 .pr-ctrl{display:flex; align-items:center; gap:8px; font-size:12.5px; font-weight:600; color:var(--ink);}
@@ -538,6 +547,10 @@ details.swot-rel .rel-note{margin-top:6px; font-size:12px; font-style:italic; co
 
 .stage-grid{ display:grid; gap:18px; margin-top:6px; grid-template-columns:1fr; }
 @media (min-width:640px){ .stage-grid{ grid-template-columns:1fr 1fr; } }
+.menu-sec{ margin:0 0 26px; }
+.menu-sec-t{ font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--navy); font-weight:800; margin:0 0 2px; padding-bottom:6px; border-bottom:2px solid var(--line); }
+.menu-sec-s{ font-size:13px; color:var(--ink-soft); margin:6px 0 10px; }
+@media (min-width:640px){ .stage-grid.one{ grid-template-columns:1fr 1fr; } .stage-grid.one .stage-card{ grid-column:1; } }
 .stage-card{
   display:block; text-decoration:none; text-align:left; cursor:pointer;
   background:var(--surface); border:1px solid var(--line); border-top:4px solid var(--mc-accent);
@@ -613,36 +626,43 @@ footer.pagefoot{ background:var(--surface); border-top:1px solid var(--line); ma
   </div>
 </header>
 
-<main style="max-width:680px;">
+<main style="max-width:780px;">
 
   <div id="step0">
+    <section class="menu-sec"><h2 class="menu-sec-t">SWOT</h2><div class="menu-sec-s">Vote no SWOT e consulte o resultado definido.</div>
     <div class="stage-grid">
       <div class="stage-card" data-track="swot" style="--mc-accent:#14548c; --mc-soft:#e4edf6;" tabindex="0" role="button">
         <div class="stage-card-icon"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></div>
-        <div class="stage-card-title">SWOT</div>
+        <div class="stage-card-title">Vota&ccedil;&atilde;o do SWOT</div>
         <div class="stage-card-desc">Votação sobre as forças, fraquezas, oportunidades e ameaças do painel estratégico 2027.</div>
       </div>
-      <a class="stage-card" href="voto.html?track=projetos&amp;stage=telecom&amp;quad=geral" data-track="projetos" data-stage="telecom" id="card-projetos" style="--mc-accent:#8a5a00; --mc-soft:#fdf0dc;">
-        <div class="stage-card-icon"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
-        <div class="stage-card-title">Projetos 2027<span class="voted-badge-slot"></span></div>
-        <div class="stage-card-desc">Votação sobre os projetos propostos para o Planejamento Estratégico 2027.</div>
-      </a>
       <a class="stage-card" href="swot_definido.html" data-track="swotdef" id="card-swotdef" style="--mc-accent:#0d6b4a; --mc-soft:#e2f7ee;">
         <div class="stage-card-icon"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="m9 15 2 2 4-4"/></svg></div>
         <div class="stage-card-title">SWOT definido</div>
         <div class="stage-card-desc">Consulte o SWOT definido após a votação, por quadrante. Somente leitura; a edição é restrita aos administradores.</div>
+      </a>
+    </div></section>
+    <section class="menu-sec"><h2 class="menu-sec-t">Projetos</h2><div class="menu-sec-s">Vote nos projetos e consulte os projetos priorizados.</div>
+    <div class="stage-grid">
+      <a class="stage-card" href="voto.html?track=projetos&amp;stage=telecom&amp;quad=geral" data-track="projetos" data-stage="telecom" id="card-projetos" style="--mc-accent:#8a5a00; --mc-soft:#fdf0dc;">
+        <div class="stage-card-icon"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+        <div class="stage-card-title">Vota&ccedil;&atilde;o dos Projetos<span class="voted-badge-slot"></span></div>
+        <div class="stage-card-desc">Votação sobre os projetos propostos para o Planejamento Estratégico 2027.</div>
       </a>
       <a class="stage-card" href="projetos_priorizados.html" data-track="projprio" id="card-projprio" style="--mc-accent:#7a2e8a; --mc-soft:#f3e6f7;">
         <div class="stage-card-icon"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3"/><path d="M7 5H4v2a3 3 0 0 0 3 3"/></svg></div>
         <div class="stage-card-title">Projetos Priorizados</div>
         <div class="stage-card-desc">Veja os projetos priorizados pelos diretores, em ordem de prioridade. Somente leitura; a edição é restrita aos administradores.</div>
       </a>
+    </div></section>
+    <section class="menu-sec"><h2 class="menu-sec-t">Pesquisa</h2><div class="menu-sec-s">Conte-nos como foi usar a ferramenta.</div>
+    <div class="stage-grid one">
       <a class="stage-card" href="pesquisa.html" data-track="pesquisa" id="card-pesquisa" style="--mc-accent:#b45f06; --mc-soft:#fdeedd;">
         <div class="stage-card-icon"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 9h8"/><path d="M8 13h5"/></svg></div>
         <div class="stage-card-title">Pesquisa de satisfa&ccedil;&atilde;o</div>
         <div class="stage-card-desc">Conte-nos como foi usar a ferramenta. Leva cerca de 1 minuto e &eacute; an&ocirc;nima.</div>
       </a>
-    </div>
+    </div></section>
     <div class="index-footnote">Sua vota&ccedil;&atilde;o &eacute; an&ocirc;nima: apenas os totais agregados ficam vis&iacute;veis, e somente para os administradores autorizados.</div>
   </div>
 

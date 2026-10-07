@@ -305,7 +305,13 @@ details.swot-rel .rel-note{margin-top:6px; font-size:12px; font-style:italic; co
 .fs-item .fs-text{flex:1;}
 .fs-edited{font-size:11px; font-weight:700; color:#8a5a00; background:#fdf0dc; border-radius:999px; padding:2px 8px; flex:none;}
 .fs-edit-btn{flex:none; padding:4px 12px;}
-.fs-item.editing{flex-wrap:wrap;} .fs-item.editing textarea{flex:1; min-width:200px; border:1px solid var(--line); border-radius:8px; padding:8px 10px; font:inherit; font-size:14px; resize:vertical;}
+.fs-add{display:flex; gap:8px; margin:10px 0 2px;}
+.fs-add input{flex:1; min-width:0; border:1px dashed var(--line); border-radius:8px; padding:8px 10px; font:inherit; font-size:13.5px;}
+@media print{ .fs-add{display:none !important;} }
+.fs-item.editing{flex-wrap:wrap;} .fs-add{display:flex; gap:8px; margin:10px 0 2px;}
+.fs-add input{flex:1; min-width:0; border:1px dashed var(--line); border-radius:8px; padding:8px 10px; font:inherit; font-size:13.5px;}
+@media print{ .fs-add{display:none !important;} }
+.fs-item.editing textarea{flex:1; min-width:200px; border:1px solid var(--line); border-radius:8px; padding:8px 10px; font:inherit; font-size:14px; resize:vertical;}
 .fs-actions-row{flex-basis:100%; display:flex; gap:8px; flex-wrap:wrap; align-items:center; padding-left:32px;}
 .fs-total{padding:10px 16px 12px; font-size:13px; color:var(--ink-soft); border-top:1px solid var(--line); background:var(--surface-2);}
 .fs-foot{font-size:12px; color:var(--ink-soft); margin-top:16px; line-height:1.5;}
@@ -336,6 +342,9 @@ details.swot-rel .rel-note{margin-top:6px; font-size:12px; font-style:italic; co
 .sv-cm small{display:block; color:var(--ink-soft); margin-top:6px; font-size:12px;}
 @media(max-width:640px){ .sv-res-q{flex-wrap:wrap;} .sv-bar{flex:1 1 100%;} }
 @media print{ .sv-send button{display:none !important;} }
+.pr-add{display:flex; gap:8px; flex-wrap:wrap; padding:10px 16px; background:#f6f8fb; border-top:1px dashed var(--line); border-bottom:1px dashed var(--line); list-style:none;}
+.pr-add input{flex:1 1 200px; min-width:0; border:1px solid var(--line); border-radius:8px; padding:8px 10px; font:inherit; font-size:13.5px;}
+@media print{ .pr-add{display:none !important;} }
 .pr-card{background:var(--surface); border:1px solid var(--line); border-radius:12px; overflow:hidden; box-shadow:var(--shadow);}
 .pr-head{display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; padding:12px 16px; background:#f3e6f7; color:#6a2a80; border-bottom:2px solid #7a2e8a; font-weight:700; font-size:15px;}
 .pr-ctrl{display:flex; align-items:center; gap:8px; font-size:12.5px; font-weight:600; color:var(--ink);}
@@ -538,6 +547,10 @@ details.swot-rel .rel-note{margin-top:6px; font-size:12px; font-style:italic; co
 
 .stage-grid{ display:grid; gap:18px; margin-top:6px; grid-template-columns:1fr; }
 @media (min-width:640px){ .stage-grid{ grid-template-columns:1fr 1fr; } }
+.menu-sec{ margin:0 0 26px; }
+.menu-sec-t{ font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:var(--navy); font-weight:800; margin:0 0 2px; padding-bottom:6px; border-bottom:2px solid var(--line); }
+.menu-sec-s{ font-size:13px; color:var(--ink-soft); margin:6px 0 10px; }
+@media (min-width:640px){ .stage-grid.one{ grid-template-columns:1fr 1fr; } .stage-grid.one .stage-card{ grid-column:1; } }
 .stage-card{
   display:block; text-decoration:none; text-align:left; cursor:pointer;
   background:var(--surface); border:1px solid var(--line); border-top:4px solid var(--mc-accent);
@@ -629,7 +642,7 @@ footer.pagefoot{ background:var(--surface); border-top:1px solid var(--line); ma
     <button class="cv-btn primary" id="fs-login-go" type="button">Entrar</button>
     <span class="cv-status err" id="fs-login-err"></span>
   </div>
-  <div class="fs-edit-note" id="fs-edit-note" style="display:none;">Modo de edi&ccedil;&atilde;o ativo: use <b>Editar</b> em cada item para ajustar o texto. As mudan&ccedil;as ficam salvas para todos.</div>
+  <div class="fs-edit-note" id="fs-edit-note" style="display:none;">Modo de edi&ccedil;&atilde;o ativo: use <b>Editar</b> para ajustar o texto, <b>Excluir</b> para remover um item e o campo <b>+ Incluir</b> no fim de cada quadrante para acrescentar. As mudan&ccedil;as ficam salvas para todos. <button class="cv-btn" id="fs-reset" type="button">Restaurar lista original</button><span class="cv-status" id="fs-save"></span></div>
 
   <div class="fs-grid" id="fs-grid"></div>
   <div class="fs-foot">Base: itens priorizados na vota&ccedil;&atilde;o SWOT (Telecom + Ambos) e ajustes manuais feitos no Scopi em 06/10/2026. Divis&atilde;o: Diretoria Geral. As tags Telecom, N&atilde;o Telecom e Ambos n&atilde;o s&atilde;o mais utilizadas.</div>
@@ -644,7 +657,7 @@ footer.pagefoot{ background:var(--surface); border-top:1px solid var(--line); ma
 
 <script>
 try{
-var FINAL = {"forcas": ["Capilaridade Física Nacional", "Planejamento tributário", "Força de vendas com atendimento presencial", "Gestão focada no resultado", "Relacionamento com os Contratantes"], "fraquezas": ["Estrutura de Capital", "Gestão de Cadastro dos Clientes", "Atraso tecnológico do Cellcard (tecnologia obsoleta)", "Turnover elevado da equipe de vendas", "Limitação de capacity do time de TI para desenvolvimento de novas ferramentas"], "oportunidades": ["Créditos tributários e benefícios fiscais (Reforma/Perse/Tese)", "Utilização de IA como alavanca de produtividade, eficiência e escala", "Novos negócios no mercado Telecom (fora pré)", "Expansão de serviços financeiros, desenvolvendo parcerias com novos adquirentes/subadquirentes", "Expansão de parcerias com empresas de produtos físicos", "Expansão do Kiddle"], "ameacas": ["Crimes cibernéticos", "Reforma Tributária/CBS: riscos regulatórios, fiscais e de fluxo de caixa", "Obrigatoriedade do reconhecimento facial na ativação do chip", "Popularização do e-SIM", "Concorrência de novos players e dos próprios contratantes no atendimento do PDV"]};
+var FINAL = {"forcas": ["Capilaridade Física Nacional", "Planejamento tributário", "Força de vendas com atendimento presencial", "Gestão focada no resultado", "Relacionamento com os Contratantes"], "fraquezas": ["Estrutura de Capital", "Gestão de Cadastro dos Clientes", "Atraso tecnológico do Cellcard (tecnologia obsoleta)", "Turnover elevado da equipe de vendas", "Limitação de capacity do time de TI para desenvolvimento de novas ferramentas"], "oportunidades": ["Créditos tributários e benefícios fiscais (Reforma/Perse/Tese)", "Utilização de IA como alavanca de produtividade, eficiência e escala", "Novos negócios no mercado Telecom (fora pré)", "Expansão de serviços financeiros, desenvolvendo parcerias com novos adquirentes/subadquirentes", "Expansão de parcerias com empresas de produtos físicos", "Expansão do Kiddle"], "ameacas": ["Crimes cibernéticos", "Reforma Tributária/CBS: riscos regulatórios, fiscais e de fluxo de caixa", "Obrigatoriedade do reconhecimento facial na ativação do chip", "Popularização do e-SIM", "Concorrência de novos players e dos próprios contratantes no atendimento do PDV", "Fim da Escala 6x1 (Impacto DSR)"]};
 var QMETA = [
   {k:"forcas", label:"Forças", c:"#00b554", soft:"#e2f8ea"},
   {k:"fraquezas", label:"Fraquezas", c:"#d14343", soft:"#fbe6e6"},
@@ -652,6 +665,8 @@ var QMETA = [
   {k:"ameacas", label:"Ameaças", c:"#c98200", soft:"#fdf0dc"}
 ];
 var edits = {};         // item_id -> texto editado
+var LAYOUT = null;      // null = lista original; ou { quad: [ids...] } com itens excluídos/incluídos pelo administrador
+var LAYOUT_KEY = "_swot_layout", layoutPending = 0, layoutChain = Promise.resolve();
 var canEdit = false;
 var editingId = null;
 var sb = null;
@@ -663,36 +678,53 @@ try{
 
 function esc(s){ return String(s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
 function itemId(q, i){ return "final_" + q + "_" + (i+1); }
-function textOf(q, i){ var id = itemId(q,i); return edits[id] !== undefined ? edits[id] : FINAL[q][i]; }
+function baseOf(id){ var m = /^final_([a-z]+)_(\d+)$/.exec(id); return (m && FINAL[m[1]] && FINAL[m[1]][parseInt(m[2],10)-1] !== undefined) ? FINAL[m[1]][parseInt(m[2],10)-1] : null; }
+function textOfId(id){ return edits[id] !== undefined ? edits[id] : (baseOf(id) || ""); }
+function idsOf(q){ return (LAYOUT && LAYOUT[q]) ? LAYOUT[q] : FINAL[q].map(function(_, i){ return itemId(q, i); }); }
+function setFsMsg(msg, cls){ var e = document.getElementById("fs-save"); if(e){ e.textContent = msg; e.className = "cv-status " + (cls || ""); } }
+// Grava a lista (layout) + textos novos numa única chamada, em fila, com aviso visível se falhar.
+function saveLayout(next, rows, okMsg){
+  if(!sb){ setFsMsg("Sem conexão: alteração não salva.", "err"); return; }
+  layoutPending++; setFsMsg("Salvando…", "");
+  var all = [{ track:"swot", stage:"telecom", quadrant:"forcas", item_id: LAYOUT_KEY, title: JSON.stringify(next), updated_at: new Date().toISOString() }].concat(rows || []);
+  layoutChain = layoutChain.then(async function(){
+    try{
+      var r = await sb.from("item_edits").upsert(all, { onConflict: "track,stage,quadrant,item_id" });
+      if(r.error) throw r.error;
+      if(layoutPending <= 1) setFsMsg("✓ " + (okMsg || "Salvo"), "ok");
+    }catch(err){ setFsMsg("⚠ NÃO foi salvo (" + (err && err.message ? err.message : "erro desconhecido") + "). Verifique o login e tente de novo.", "err"); }
+    finally{ layoutPending--; }
+  });
+}
+function fullLayout(){ var o = {}; QMETA.forEach(function(m){ o[m.k] = idsOf(m.k).slice(); }); return o; }
 
 function render(){
   var total = 0;
   var html = "";
   QMETA.forEach(function(m){
-    var n = FINAL[m.k].length; total += n;
+    var ids = idsOf(m.k), n = ids.length; total += n;
     html += '<section class="fs-quad" style="--qc:'+m.c+'; --qs:'+m.soft+';">'
       + '<div class="fs-qhead">'+m.label+'</div>'
       + '<div class="fs-div">Divisão: Diretoria Geral</div><ol class="fs-list">';
-    FINAL[m.k].forEach(function(_, i){
-      var id = itemId(m.k, i);
-      var edited = edits[id] !== undefined;
+    ids.forEach(function(id){
+      var edited = edits[id] !== undefined && baseOf(id) !== null;
       if(editingId === id){
-        html += '<li class="fs-item editing"><textarea id="fs-ta" rows="3">'+esc(textOf(m.k,i))+'</textarea>'
+        html += '<li class="fs-item editing"><textarea id="fs-ta" rows="3">'+esc(textOfId(id))+'</textarea>'
           + '<div class="fs-actions-row"><button class="cv-btn primary" data-a="save" data-id="'+id+'">Salvar</button>'
           + '<button class="cv-btn" data-a="cancel">Cancelar</button>'
           + (edited ? '<button class="cv-btn danger" data-a="restore" data-id="'+id+'">Restaurar original</button>' : '')
           + '<span class="cv-status" id="fs-st"></span></div></li>';
       } else {
-        html += '<li class="fs-item"><span class="fs-text">'+esc(textOf(m.k,i))+'</span>'
+        html += '<li class="fs-item"><span class="fs-text">'+esc(textOfId(id))+'</span>'
           + (edited ? '<span class="fs-edited">editado</span>' : '')
-          + (canEdit ? '<button class="cv-btn fs-edit-btn" data-a="edit" data-id="'+id+'">Editar</button>' : '')
+          + (canEdit ? '<button class="cv-btn fs-edit-btn" data-a="edit" data-id="'+id+'">Editar</button><button class="cv-btn danger fs-edit-btn" data-a="del" data-id="'+id+'" data-q="'+m.k+'" title="Excluir este item">Excluir</button>' : '')
           + '</li>';
       }
     });
-    html += '</ol><div class="fs-total">Total <b>'+n+'</b></div></section>';
+    html += '</ol>' + (canEdit ? '<div class="fs-add"><input type="text" class="fs-add-in" data-q="'+m.k+'" placeholder="Novo item em '+m.label+'…" maxlength="300"><button class="cv-btn primary" data-a="add" data-q="'+m.k+'">+ Incluir</button></div>' : '') + '<div class="fs-total">Total <b>'+n+'</b></div></section>';
   });
   document.getElementById("fs-grid").innerHTML = html;
-  document.getElementById("fs-sum").innerHTML = QMETA.map(function(m){ return '<span class="fs-pill" style="--qc:'+m.c+'"><i></i>'+m.label+': <b>'+FINAL[m.k].length+'</b></span>'; }).join("") + '<span class="fs-pill tot">Total: <b>'+total+'</b></span>';
+  document.getElementById("fs-sum").innerHTML = QMETA.map(function(m){ return '<span class="fs-pill" style="--qc:'+m.c+'"><i></i>'+m.label+': <b>'+idsOf(m.k).length+'</b></span>'; }).join("") + '<span class="fs-pill tot">Total: <b>'+total+'</b></span>';
   var ta = document.getElementById("fs-ta"); if(ta){ ta.focus(); }
 }
 
@@ -703,11 +735,16 @@ async function loadEdits(){
     if(r.error) return;
     var next = {};
     (r.data || []).forEach(function(x){ next[x.item_id] = x.title; });
-    if(JSON.stringify(next) !== JSON.stringify(edits) && editingId === null){ edits = next; render(); }
-    else if(editingId !== null){ /* não interrompe uma edição em curso */ }
+    var rl = await sb.from("item_edits").select("title").eq("track","swot").eq("stage","telecom").eq("quadrant","forcas").eq("item_id", LAYOUT_KEY).maybeSingle();
+    var nl = null;
+    if(rl && !rl.error && rl.data && rl.data.title){ try{ nl = JSON.parse(rl.data.title); }catch(ep){ nl = null; } }
+    var busy = editingId !== null || layoutPending > 0 || Array.prototype.some.call(document.querySelectorAll(".fs-add-in"), function(i){ return i.value || i === document.activeElement; });
+    if(busy) return;   // não interrompe edição/digitação/gravação em curso
+    if(JSON.stringify(next) !== JSON.stringify(edits) || JSON.stringify(nl) !== JSON.stringify(LAYOUT)){ edits = next; LAYOUT = nl; render(); }
   }catch(e){ console.warn("edits load failed", e); }
 }
 function quadOf(id){ return id.split("_")[1]; }
+function newId(q){ return "final_" + q + "_x" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); }
 
 document.getElementById("fs-grid").addEventListener("click", async function(e){
   var b = e.target.closest("button[data-a]");
@@ -715,6 +752,20 @@ document.getElementById("fs-grid").addEventListener("click", async function(e){
   var a = b.getAttribute("data-a"), id = b.getAttribute("data-id");
   if(a === "edit"){ editingId = id; render(); }
   else if(a === "cancel"){ editingId = null; render(); }
+  else if(a === "add"){
+    var q = b.getAttribute("data-q");
+    var inp = document.querySelector('.fs-add-in[data-q="'+q+'"]'); var txt = inp ? (inp.value || "").trim() : "";
+    if(!txt){ if(inp) inp.focus(); return; }
+    var nid = newId(q), lay = fullLayout(); lay[q].push(nid); edits[nid] = txt; LAYOUT = lay;
+    render();
+    saveLayout(lay, [{ track:"swot", stage:"telecom", quadrant:q, item_id:nid, title:txt, updated_at:new Date().toISOString() }], "Item incluído");
+  }
+  else if(a === "del"){
+    var qd = b.getAttribute("data-q");
+    if(!confirm("Excluir este item do SWOT definido?\n\n" + textOfId(id))) return;
+    var lay2 = fullLayout(); lay2[qd] = lay2[qd].filter(function(x){ return x !== id; }); LAYOUT = lay2;
+    render(); saveLayout(lay2, [], "Item excluído");
+  }
   else if(a === "save"){
     var v = (document.getElementById("fs-ta").value || "").trim();
     var st = document.getElementById("fs-st");
@@ -755,6 +806,16 @@ document.getElementById("fs-login-go").addEventListener("click", async function(
 });
 document.getElementById("fs-logout-btn").addEventListener("click", async function(){ if(sb) await sb.auth.signOut(); setEditMode(false); });
 document.getElementById("fs-print").addEventListener("click", function(){ window.print(); });
+document.getElementById("fs-reset").addEventListener("click", async function(){
+  if(!confirm("Voltar à lista original do SWOT definido? Itens excluídos voltam e itens incluídos são removidos (textos editados são mantidos).")) return;
+  try{
+    var r1 = await sb.from("item_edits").delete().eq("track","swot").eq("stage","telecom").eq("quadrant","forcas").eq("item_id", LAYOUT_KEY);
+    if(r1.error) throw r1.error;
+    var custom = Object.keys(edits).filter(function(k){ return baseOf(k) === null; });
+    for(var i = 0; i < custom.length; i++){ await sb.from("item_edits").delete().eq("track","swot").eq("stage","telecom").eq("quadrant", quadOf(custom[i])).eq("item_id", custom[i]); delete edits[custom[i]]; }
+    LAYOUT = null; render(); setFsMsg("✓ Lista original restaurada", "ok");
+  }catch(err){ setFsMsg("⚠ Não foi possível restaurar (" + (err && err.message ? err.message : "erro") + ")", "err"); }
+});
 
 render();
 if(sb){
