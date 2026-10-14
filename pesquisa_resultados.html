@@ -637,14 +637,12 @@ footer.pagefoot{ background:var(--surface); border-top:1px solid var(--line); ma
     <div class="fs-bar"><div class="fs-sum" id="sr-sum"></div>
       <div class="fs-actions"><button class="cv-btn" id="sr-refresh" type="button">Atualizar</button><button class="cv-btn" id="sr-csv" type="button">Exportar (Excel/CSV)</button><button class="cv-btn" id="sr-print" type="button">Imprimir / PDF</button></div></div>
     <div class="sv-card"><div class="sv-q">Notas por pergunta (m&eacute;dia de 1 a 5)</div><div id="sr-scale"></div></div>
-    <div class="sv-card"><div class="sv-q">Recomendaria nos pr&oacute;ximos planejamentos?</div><div id="sr-yn" class="fs-sum" style="margin-top:8px;"></div></div>
-    <div class="sv-card"><div class="sv-q">Coment&aacute;rios por pergunta</div><div id="sr-qcm" style="margin-top:8px;"></div></div>
-    <div class="sv-card"><div class="sv-q">Sugest&otilde;es e coment&aacute;rios</div><div id="sr-cm" style="margin-top:8px;"></div></div>
+    <div class="sv-card"><div class="sv-q">Respostas por pergunta (justificativas e sugest&otilde;es)</div><div id="sr-qcm" style="margin-top:8px;"></div></div>
   </div>
 </main>
 <script>
 try{
-var QS = [{"id": "q1", "t": "De modo geral, qual a sua satisfação com a ferramenta?", "k": "scale"}, {"id": "q2", "t": "Foi fácil entender como votar? (clareza das instruções)", "k": "scale"}, {"id": "q3", "t": "A navegação e o visual da ferramenta foram intuitivos?", "k": "scale"}, {"id": "q4", "t": "As descrições dos projetos e do SWOT foram claras o suficiente para decidir o seu voto?", "k": "scale"}, {"id": "q5", "t": "As páginas “SWOT definido” e “Projetos priorizados” refletiram bem a discussão?", "k": "scale"}, {"id": "q6", "t": "Você recomendaria usar a ferramenta nos próximos planejamentos?", "k": "yn"}];
+var QS = [{"id": "q1", "t": "Como você avalia a qualidade das sugestões de SWOT e Projetos Estratégicos levantadas pela sua Diretoria?", "k": "scale", "h": "Nota de 1 (muito baixa) a 5 (muito alta) e um comentário."}, {"id": "q2", "t": "A apresentação das propostas de SWOT e Projetos Estratégicos foi adequada? (clareza, ritmo e gestão do tempo)", "k": "scale", "h": "Nota de 1 a 5 e um comentário."}, {"id": "q3", "t": "A dinâmica de votação foi adequada para priorizar os fatores da SWOT e selecionar os Projetos Estratégicos?", "k": "scale", "h": "Nota de 1 a 5 e um comentário."}, {"id": "q4", "t": "Como você avalia a sua participação no ciclo do PE 2027 (preparação, engajamento e contribuições)?", "k": "scale", "h": "Nota de 1 (muito baixa) a 5 (muito alta) e um comentário."}, {"id": "q5", "t": "Como você avalia o encontro presencial?", "k": "scale", "h": "Nota de 1 a 5 e um comentário."}, {"id": "q6", "t": "O que pode ser melhorado no processo no próximo ciclo?", "k": "text", "h": "Diga o que manteria e o que mudaria no próximo ciclo."}];
 var sb = null;
 try{
   if(window.RV_SUPABASE_URL && window.RV_SUPABASE_ANON_KEY && window.RV_SUPABASE_URL.indexOf("COLOQUE_AQUI") === -1 && window.supabase){
@@ -659,41 +657,41 @@ async function load(){
   if(r.error){ err.textContent = "Não foi possível ler as respostas (" + r.error.message + "). Rode o script pesquisa_satisfacao.sql no Supabase."; return; }
   rows = r.data || []; draw();
 }
+function A(x, id){ var v = x.answers && x.answers[id]; return (v && typeof v === "object") ? v : {}; }
 function draw(){
   document.getElementById("fs-login").style.display = "none";
   document.getElementById("sr-body").style.display = "block";
   document.getElementById("sr-sum").innerHTML = '<span class="fs-pill tot">Respostas: <b>'+rows.length+'</b></span>';
   var h = "";
   QS.filter(function(q){ return q.k === "scale"; }).forEach(function(q){
-    var vals = rows.map(function(x){ return x.answers && x.answers[q.id]; }).filter(function(v){ return typeof v === "number"; });
+    var vals = rows.map(function(x){ return A(x, q.id).nota; }).filter(function(v){ return typeof v === "number"; });
     var avg = vals.length ? vals.reduce(function(a,b){ return a+b; }, 0) / vals.length : 0;
     var dist = [1,2,3,4,5].map(function(n){ return n + ": " + vals.filter(function(v){ return v === n; }).length; }).join(" · ");
     h += '<div class="sv-res-q"><div class="sv-res-t">'+esc(q.t)+'</div><div class="sv-dist">'+dist+'</div><div class="sv-bar"><i style="width:'+(avg/5*100)+'%"></i></div><div class="sv-avg">'+(vals.length ? avg.toFixed(1).replace(".", ",") : "—")+'</div></div>';
   });
   document.getElementById("sr-scale").innerHTML = h || "—";
-  var yn = { sim:0, talvez:0, nao:0 };
-  rows.forEach(function(x){ var v = x.answers && x.answers.q6; if(yn[v] !== undefined) yn[v]++; });
-  document.getElementById("sr-yn").innerHTML = '<span class="fs-pill tot">Sim: <b>'+yn.sim+'</b></span><span class="fs-pill tot">Talvez: <b>'+yn.talvez+'</b></span><span class="fs-pill tot">Não: <b>'+yn.nao+'</b></span>';
   var qh = "";
   QS.forEach(function(q, i){
-    var lst = rows.filter(function(x){ return x.answers && x.answers[q.id + "_c"]; });
+    var lst = rows.filter(function(x){ return A(x, q.id).texto; });
     if(!lst.length) return;
     qh += '<div class="sv-q" style="font-size:14px; margin:14px 0 6px;">'+(i+1)+'. '+esc(q.t)+'</div>' + lst.map(function(x){
-      var v = x.answers[q.id], lab = (q.k === "scale") ? ("Nota " + v) : ({sim:"Sim", talvez:"Talvez", nao:"Não"}[v] || v);
-      return '<div class="sv-cm">'+esc(x.answers[q.id + "_c"])+'<small>'+lab+' &middot; '+(x.name ? esc(x.name) : 'Anônimo')+' &middot; '+new Date(x.updated_at).toLocaleDateString("pt-BR")+'</small></div>';
+      var a = A(x, q.id), lab = (q.k === "scale" && a.nota) ? ("Nota " + a.nota + " &middot; ") : "";
+      return '<div class="sv-cm">'+esc(a.texto)+'<small>'+lab+(x.name ? esc(x.name) : 'Anônimo')+' &middot; '+new Date(x.updated_at).toLocaleDateString("pt-BR")+'</small></div>';
     }).join("");
   });
-  document.getElementById("sr-qcm").innerHTML = qh || '<div class="sv-hint">Nenhum comentário por pergunta até agora.</div>';
-  var cm = rows.filter(function(x){ return x.comment; });
-  document.getElementById("sr-cm").innerHTML = cm.length ? cm.map(function(x){
-    return '<div class="sv-cm">'+esc(x.comment)+'<small>'+(x.name ? esc(x.name) : 'Anônimo')+' &middot; '+new Date(x.updated_at).toLocaleDateString("pt-BR")+'</small></div>';
-  }).join("") : '<div class="sv-hint">Nenhuma sugestão enviada até agora.</div>';
+  document.getElementById("sr-qcm").innerHTML = qh || '<div class="sv-hint">Nenhuma resposta até agora.</div>';
 }
 function csv(){
-  var head = ["Data"].concat(QS.map(function(q){ return q.t; })).concat(QS.map(function(q, i){ return "Comentário P" + (i+1); })).concat(["Sugestões","Nome (opcional)"]);
-  var lines = [head].concat(rows.map(function(x){ return [new Date(x.updated_at).toLocaleString("pt-BR")].concat(QS.map(function(q){ return x.answers ? (x.answers[q.id] === undefined ? "" : x.answers[q.id]) : ""; })).concat(QS.map(function(q){ return (x.answers && x.answers[q.id + "_c"]) || ""; })).concat([x.comment || "", x.name || ""]); }));
+  var head = ["Data"];
+  QS.forEach(function(q, i){ if(q.k === "scale") head.push("P" + (i+1) + " nota"); head.push("P" + (i+1) + " texto"); });
+  head.push("Nome (opcional)");
+  var lines = [head].concat(rows.map(function(x){
+    var l = [new Date(x.updated_at).toLocaleString("pt-BR")];
+    QS.forEach(function(q){ var a = A(x, q.id); if(q.k === "scale") l.push(a.nota === undefined ? "" : a.nota); l.push(a.texto || ""); });
+    l.push(x.name || ""); return l;
+  }));
   var txt = lines.map(function(l){ return l.map(function(c){ return '"' + String(c).replace(/"/g, '""') + '"'; }).join(";"); }).join("\r\n");
-  var a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["﻿" + txt], { type:"text/csv;charset=utf-8" })); a.download = "pesquisa_satisfacao_rv_2027.csv"; a.click();
+  var a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["\ufeff" + txt], { type:"text/csv;charset=utf-8" })); a.download = "pesquisa_satisfacao_rv_2027.csv"; a.click();
 }
 document.getElementById("fs-login-go").addEventListener("click", async function(){
   var err = document.getElementById("fs-login-err"); err.textContent = "";
