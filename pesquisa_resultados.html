@@ -637,7 +637,7 @@ footer.pagefoot{ background:var(--surface); border-top:1px solid var(--line); ma
     <div class="fs-bar"><div class="fs-sum" id="sr-sum"></div>
       <div class="fs-actions"><button class="cv-btn" id="sr-refresh" type="button">Atualizar</button><button class="cv-btn" id="sr-csv" type="button">Exportar (Excel/CSV)</button><button class="cv-btn" id="sr-print" type="button">Imprimir / PDF</button></div></div>
     <div class="sv-card"><div class="sv-q">Avalia&ccedil;&otilde;es por item (Ruim / Regular / Bom)</div><div id="sr-scale"></div></div>
-    <div class="sv-card"><div class="sv-q">Sugest&otilde;es por bloco</div><div id="sr-qcm" style="margin-top:8px;"></div></div>
+    <div class="sv-card"><div class="sv-q">Coment&aacute;rios por bloco</div><div id="sr-qcm" style="margin-top:8px;"></div></div>
   </div>
 </main>
 <script>
@@ -683,7 +683,7 @@ function draw(){
       return '<div class="sv-cm">'+esc(x.answers[g.s])+'<small>'+(x.name ? esc(x.name) : 'Diretoria não informada')+' &middot; '+new Date(x.updated_at).toLocaleDateString("pt-BR")+'</small></div>';
     }).join("");
   });
-  document.getElementById("sr-qcm").innerHTML = qh || '<div class="sv-hint">Nenhuma sugestão até agora.</div>';
+  document.getElementById("sr-qcm").innerHTML = qh || '<div class="sv-hint">Nenhum comentário até agora.</div>';
 }
 function csv(){
   var head = ["Data","Diretoria"], ids = [], lab = {ruim:"Ruim", regular:"Regular", bom:"Bom"};
