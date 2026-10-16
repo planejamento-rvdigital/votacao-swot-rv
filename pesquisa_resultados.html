@@ -636,7 +636,7 @@ footer.pagefoot{ background:var(--surface); border-top:1px solid var(--line); ma
   <div id="sr-body" style="display:none;">
     <div class="fs-bar"><div class="fs-sum" id="sr-sum"></div>
       <div class="fs-actions"><button class="cv-btn" id="sr-refresh" type="button">Atualizar</button><button class="cv-btn" id="sr-csv" type="button">Exportar (Excel/CSV)</button><button class="cv-btn" id="sr-print" type="button">Imprimir / PDF</button></div></div>
-    <div class="sv-card"><div class="sv-q">Avalia&ccedil;&otilde;es por item (Ruim / Regular / Bom)</div><div id="sr-scale"></div></div>
+    <div class="sv-card"><div class="sv-q">Avalia&ccedil;&otilde;es por item (Ruim / Regular / Bom / &Oacute;tima)</div><div id="sr-scale"></div></div>
     <div class="sv-card"><div class="sv-q">Coment&aacute;rios por bloco</div><div id="sr-qcm" style="margin-top:8px;"></div></div>
   </div>
 </main>
@@ -665,13 +665,13 @@ function draw(){
   GROUPS.filter(function(g){ return !g.open; }).forEach(function(g){
     h += '<div class="sv-q" style="font-size:14px; margin:16px 0 4px;">'+g.n+'. '+esc(g.t)+'</div>';
     g.items.forEach(function(it){
-      var c = { ruim:0, regular:0, bom:0 }, tot = 0;
+      var c = { ruim:0, regular:0, bom:0, otima:0 }, tot = 0;
       rows.forEach(function(x){ var v = x.answers && x.answers[it[0]]; if(c[v] !== undefined){ c[v]++; tot++; } });
       var pc = function(k){ return tot ? Math.round(c[k] / tot * 100) : 0; };
       h += '<div class="sv-res-q"><div class="sv-res-t">'+esc(it[1])+(it[2] ? ' <small style="color:var(--ink-soft);">('+esc(it[2])+')</small>' : '')+'</div>'
-        + '<div class="sv-dist">Ruim: '+c.ruim+' &middot; Regular: '+c.regular+' &middot; Bom: '+c.bom+'</div>'
-        + '<div class="sv-bar" style="display:flex; overflow:hidden;"><i style="width:'+pc("ruim")+'%; background:#b23b3b; border-radius:0;"></i><i style="width:'+pc("regular")+'%; background:#c98a14; border-radius:0;"></i><i style="width:'+pc("bom")+'%; background:#1b8a5a; border-radius:0;"></i></div>'
-        + '<div class="sv-avg">'+(tot ? pc("bom") + '% Bom' : '—')+'</div></div>';
+        + '<div class="sv-dist">Ruim: '+c.ruim+' &middot; Regular: '+c.regular+' &middot; Bom: '+c.bom+' &middot; &Oacute;tima: '+c.otima+'</div>'
+        + '<div class="sv-bar" style="display:flex; overflow:hidden;"><i style="width:'+pc("ruim")+'%; background:#b23b3b; border-radius:0;"></i><i style="width:'+pc("regular")+'%; background:#c98a14; border-radius:0;"></i><i style="width:'+pc("bom")+'%; background:#1b8a5a; border-radius:0;"></i><i style="width:'+pc("otima")+'%; background:#0b5d3e; border-radius:0;"></i></div>'
+        + '<div class="sv-avg">'+(tot ? (pc("bom") + pc("otima")) + '% Bom ou Ótima' : '—')+'</div></div>';
     });
   });
   document.getElementById("sr-scale").innerHTML = h || "—";
@@ -686,7 +686,7 @@ function draw(){
   document.getElementById("sr-qcm").innerHTML = qh || '<div class="sv-hint">Nenhum comentário até agora.</div>';
 }
 function csv(){
-  var head = ["Data","Diretoria"], ids = [], lab = {ruim:"Ruim", regular:"Regular", bom:"Bom"};
+  var head = ["Data","Diretoria"], ids = [], lab = {ruim:"Ruim", regular:"Regular", bom:"Bom", otima:"Ótima"};
   GROUPS.forEach(function(g){ (g.items||[]).forEach(function(it){ ids.push(it[0]); head.push("B" + g.n + " – " + it[1]); }); head.push("B" + g.n + " – Sugestões"); });
   var lines = [head].concat(rows.map(function(x){
     var a = x.answers || {}, l = [new Date(x.updated_at).toLocaleString("pt-BR"), x.name || ""];
